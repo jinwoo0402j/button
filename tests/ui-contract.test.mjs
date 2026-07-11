@@ -8,7 +8,7 @@ const script = readFileSync(new URL("../game.js", import.meta.url), "utf8");
 test("the immersive UI removes visible meta copy and keeps the button label fixed", () => {
   assert.match(
     html,
-    /<button id="press-button" class="button" type="button">버튼<\/button>/,
+    /<button id="press-button" class="button" aria-label="버튼" type="button">버튼<\/button>/,
   );
 
   for (const removedText of [
@@ -39,4 +39,22 @@ test("the UI uses a local pixel font and repeatable roulette log template", () =
   assert.ok(
     statSync(new URL("../assets/fonts/Galmuri-OFL-1.1.md", import.meta.url)).size > 4_000,
   );
+});
+
+test("the approved CRT theme communicates state with text color instead of panels", () => {
+  assert.match(html, /--background: #000000/);
+  assert.match(html, /--foreground: #f2f5ef/);
+  assert.match(html, /--muted: #777c76/);
+  assert.match(html, /--amber: #e4aa3d/);
+  assert.match(html, /--red: #ff4938/);
+  assert.match(html, /body::before/);
+  assert.match(html, /@media \(forced-colors: active\)/);
+  assert.match(html, /\.button::before[\s\S]*content: "\["/);
+  assert.match(html, /\.button::after[\s\S]*content: "\]"/);
+  assert.match(
+    html,
+    /\.log-entry:not\(\.is-complete\) \.log-field__value[\s\S]*color: var\(--amber\)/,
+  );
+  assert.doesNotMatch(html, /border-radius: 50%/);
+  assert.doesNotMatch(html, /background: var\(--red\)/);
 });
