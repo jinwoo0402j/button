@@ -12,7 +12,11 @@ export const POPULATION_EPOCH_MS = Date.parse("2026-07-11T12:58:15Z");
 export const REWARD_PER_PRESS = 1_000_000;
 export const BUTTON_CAUSE_RATE = 0.01;
 export const MONEY_GOALS = Object.freeze([
+  { id: "1m", amount: 1_000_000, requiredPresses: 1, label: "100만원", reward: "첫 거래 기록" },
+  { id: "3m", amount: 3_000_000, requiredPresses: 3, label: "300만원", reward: "버튼 잔상" },
+  { id: "5m", amount: 5_000_000, requiredPresses: 5, label: "500만원", reward: "CRT 색상" },
   { id: "10m", amount: 10_000_000, requiredPresses: 10, label: "1000만원", reward: "목표 진행률" },
+  { id: "25m", amount: 25_000_000, requiredPresses: 25, label: "2500만원", reward: "새 버튼 음색" },
   { id: "100m", amount: 100_000_000, requiredPresses: 100, label: "1억", reward: "SPACE 홀드 입력" },
   { id: "300m", amount: 300_000_000, requiredPresses: 300, label: "3억", reward: "룰렛 가속 Ⅰ" },
   { id: "500m", amount: 500_000_000, requiredPresses: 500, label: "5억", reward: "룰렛 가속 Ⅱ" },
@@ -21,6 +25,10 @@ export const MONEY_GOALS = Object.freeze([
   { id: "10b", amount: 10_000_000_000, requiredPresses: 10_000, label: "100억", reward: "모든 기능" },
 ].map(Object.freeze));
 export const ROULETTE_DURATIONS_MS = Object.freeze([
+  1_200,
+  1_200,
+  1_200,
+  1_200,
   1_200,
   1_200,
   1_200,
@@ -39,6 +47,10 @@ const INTRO_HOLD_MS = 700;
 const DISSOLVE_MS = 620;
 const RESULT_HOLD_MS = 420;
 const MONEY_FLASH_MS = 430;
+const MONEY_ROLL_MS = 190;
+const BUTTON_PRESS_MS = 80;
+const BUTTON_WAVE_MS = 260;
+const BUTTON_TRAIL_WAVE_MS = 420;
 const CELEBRATION_HOLD_MS = 1_250;
 const SPACE_REPEAT_THROTTLE_MS = 90;
 const SUBTITLE_LINES = [
@@ -115,8 +127,12 @@ export function progressionForPresses(presses) {
     remainingPresses,
     remainingMoney: remainingPresses * REWARD_PER_PRESS,
     complete: nextGoal === null,
-    progressUnlocked: unlockedRewardCount >= 1,
-    holdSpaceUnlocked: unlockedRewardCount >= 2,
+    tradeRecordUnlocked: presses >= 1,
+    buttonTrailUnlocked: presses >= 3,
+    crtColorUnlocked: presses >= 5,
+    progressUnlocked: presses >= 10,
+    enhancedSwitchToneUnlocked: presses >= 25,
+    holdSpaceUnlocked: presses >= 100,
     rouletteDurationMs: ROULETTE_DURATIONS_MS[unlockedRewardCount],
   };
 }
@@ -374,6 +390,7 @@ function initializeGame() {
     population: document.querySelector("#population"),
     money: document.querySelector("#money"),
     moneyDisplay: document.querySelector("#money-display"),
+    tradeRecord: document.querySelector("#trade-record"),
     focusStage: document.querySelector("#focus-stage"),
     intro: document.querySelector("#intro"),
     goalStatus: document.querySelector("#goal-status"),
@@ -384,6 +401,7 @@ function initializeGame() {
     celebrationGoal: document.querySelector("#celebration-goal"),
     celebrationReward: document.querySelector("#celebration-reward"),
     button: document.querySelector("#press-button"),
+    buttonWave: document.querySelector("#button-wave"),
     log: document.querySelector("#roulette-log"),
     template: document.querySelector("#roulette-entry-template"),
     warning: document.querySelector("#storage-warning"),
@@ -395,6 +413,7 @@ function initializeGame() {
     !elements.population
     || !elements.money
     || !elements.moneyDisplay
+    || !elements.tradeRecord
     || !elements.focusStage
     || !elements.intro
     || !elements.goalStatus
@@ -405,6 +424,7 @@ function initializeGame() {
     || !elements.celebrationGoal
     || !elements.celebrationReward
     || !elements.button
+    || !elements.buttonWave
     || !elements.log
     || !elements.template
     || !elements.warning
@@ -446,8 +466,14 @@ function initializeGame() {
   const celebrationQueue = [];
   let rollTimer = null;
   let moneyFlashTimer = null;
+  let moneyRollTimer = null;
+  let buttonPressTimer = null;
+  let buttonWaveTimer = null;
+  let audioContext = null;
+  let clickNoiseBuffer = null;
   let celebrationActive = false;
   let pendingMoneyFlash = false;
+  let pendingMoneyRoll = false;
   let lastSpacePressAt = Number.NEGATIVE_INFINITY;
 
   try {
@@ -527,11 +553,183 @@ function initializeGame() {
     }, MONEY_FLASH_MS);
   }
 
-  function renderMoney(presses = state.presses, { flash = false } = {}) {
+  function rollMoneyDisplay() {
+    if (reducedMotion.matches) {
+      pendingMoneyRoll = false;
+      return;
+    }
+    if (elements.moneyDisplay.hidden) {
+      pendingMoneyRoll = true;
+      return;
+    }
+
+    pendingMoneyRoll = false;
+    if (moneyRollTimer !== null) {
+      window.clearTimeout(moneyRollTimer);
+    }
+    elements.moneyDisplay.classList.remove("is-rolling");
+    void elements.moneyDisplay.offsetWidth;
+    elements.moneyDisplay.classList.add("is-rolling");
+    moneyRollTimer = window.setTimeout(() => {
+      elements.moneyDisplay.classList.remove("is-rolling");
+      moneyRollTimer = null;
+    }, MONEY_ROLL_MS);
+  }
+
+  function renderMoney(
+    presses = state.presses,
+    { flash = false, roll = false } = {},
+  ) {
     elements.money.textContent = moneyFormatter.format(moneyForPresses(presses));
+    if (roll) {
+      rollMoneyDisplay();
+    }
     if (flash) {
       flashMoneyDisplay();
     }
+  }
+
+  function renderUnlocks(progression = progressionForPresses(state.presses)) {
+    elements.tradeRecord.hidden = !progression.tradeRecordUnlocked;
+    elements.tradeRecord.textContent = progression.tradeRecordUnlocked
+      ? `거래 ${numberFormatter.format(state.presses)}회`
+      : "";
+    document.body.classList.toggle(
+      "has-button-trail",
+      progression.buttonTrailUnlocked,
+    );
+    document.body.classList.toggle(
+      "has-crt-color",
+      progression.crtColorUnlocked,
+    );
+  }
+
+  function getAudioContext() {
+    try {
+      const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextConstructor) {
+        return null;
+      }
+      if (audioContext?.state === "closed") {
+        audioContext = null;
+        clickNoiseBuffer = null;
+      }
+      if (audioContext === null) {
+        try {
+          audioContext = new AudioContextConstructor({ latencyHint: "interactive" });
+        } catch {
+          audioContext = new AudioContextConstructor();
+        }
+      }
+      if (audioContext.state === "suspended") {
+        void audioContext.resume().catch(() => {});
+      }
+      return audioContext;
+    } catch {
+      return null;
+    }
+  }
+
+  function getClickNoiseBuffer(context) {
+    if (clickNoiseBuffer !== null) {
+      return clickNoiseBuffer;
+    }
+
+    const frameCount = Math.max(1, Math.floor(context.sampleRate * 0.032));
+    clickNoiseBuffer = context.createBuffer(1, frameCount, context.sampleRate);
+    const samples = clickNoiseBuffer.getChannelData(0);
+    for (let index = 0; index < samples.length; index += 1) {
+      const decay = 1 - index / samples.length;
+      samples[index] = (Math.random() * 2 - 1) * decay;
+    }
+    return clickNoiseBuffer;
+  }
+
+  function playSwitchClick(enhanced = false) {
+    try {
+      const context = getAudioContext();
+      if (!context) {
+        return;
+      }
+
+      const now = context.currentTime;
+      const noise = context.createBufferSource();
+      const noiseFilter = context.createBiquadFilter();
+      const noiseGain = context.createGain();
+      noise.buffer = getClickNoiseBuffer(context);
+      noiseFilter.type = "bandpass";
+      noiseFilter.frequency.setValueAtTime(enhanced ? 2_600 : 1_850, now);
+      noiseFilter.Q.setValueAtTime(0.72, now);
+      noiseGain.gain.setValueAtTime(enhanced ? 0.052 : 0.042, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.038);
+      noise.connect(noiseFilter).connect(noiseGain).connect(context.destination);
+      noise.start(now);
+      noise.stop(now + 0.04);
+
+      const switchTone = context.createOscillator();
+      const switchGain = context.createGain();
+      switchTone.type = enhanced ? "square" : "triangle";
+      switchTone.frequency.setValueAtTime(enhanced ? 620 : 280, now);
+      switchTone.frequency.exponentialRampToValueAtTime(
+        enhanced ? 110 : 72,
+        now + 0.045,
+      );
+      switchGain.gain.setValueAtTime(enhanced ? 0.018 : 0.014, now);
+      switchGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.048);
+      switchTone.connect(switchGain).connect(context.destination);
+      switchTone.start(now);
+      switchTone.stop(now + 0.05);
+    } catch {
+      // Audio feedback is optional and never blocks a press.
+    }
+  }
+
+  function vibrateButton() {
+    if (
+      reducedMotion.matches
+      || navigator.maxTouchPoints <= 0
+      || typeof navigator.vibrate !== "function"
+    ) {
+      return;
+    }
+    try {
+      navigator.vibrate(8);
+    } catch {
+      // Haptic feedback is optional and never blocks a press.
+    }
+  }
+
+  function playButtonFeedback(progression) {
+    playSwitchClick(progression.enhancedSwitchToneUnlocked);
+    vibrateButton();
+
+    if (reducedMotion.matches) {
+      return;
+    }
+
+    if (buttonPressTimer !== null) {
+      window.clearTimeout(buttonPressTimer);
+    }
+    elements.button.classList.remove("is-pressed");
+    void elements.button.offsetWidth;
+    elements.button.classList.add("is-pressed");
+    buttonPressTimer = window.setTimeout(() => {
+      elements.button.classList.remove("is-pressed");
+      buttonPressTimer = null;
+    }, BUTTON_PRESS_MS);
+
+    if (buttonWaveTimer !== null) {
+      window.clearTimeout(buttonWaveTimer);
+    }
+    elements.buttonWave.classList.remove("is-active");
+    void elements.buttonWave.offsetWidth;
+    elements.buttonWave.classList.add("is-active");
+    buttonWaveTimer = window.setTimeout(() => {
+      elements.buttonWave.classList.remove("is-active");
+      buttonWaveTimer = null;
+    }, progression.buttonTrailUnlocked
+      ? BUTTON_TRAIL_WAVE_MS
+      : BUTTON_WAVE_MS);
   }
 
   function renderGoal(progression = progressionForPresses(state.presses)) {
@@ -621,6 +819,9 @@ function initializeGame() {
       elements.moneyDisplay.hidden = false;
       if (pendingMoneyFlash) {
         flashMoneyDisplay();
+      }
+      if (pendingMoneyRoll) {
+        rollMoneyDisplay();
       }
       showNextCelebration();
     };
@@ -934,9 +1135,11 @@ function initializeGame() {
       });
       state = commitPress(state, victim);
       const nextProgression = progressionForPresses(state.presses);
+      renderUnlocks(nextProgression);
+      playButtonFeedback(nextProgression);
       persist();
       renderPopulation();
-      renderMoney(state.presses, { flash: true });
+      renderMoney(state.presses, { flash: true, roll: true });
       renderGoal(nextProgression);
       startRoll(victim, state.presses, nextProgression);
       if (
@@ -955,7 +1158,9 @@ function initializeGame() {
 
   renderPopulation();
   renderMoney();
-  renderGoal();
+  const initialProgression = progressionForPresses(state.presses);
+  renderUnlocks(initialProgression);
+  renderGoal(initialProgression);
   playSubtitle();
 
   elements.button.addEventListener("click", onPress);

@@ -63,7 +63,7 @@ test("the approved CRT theme communicates state with text color instead of panel
 test("the intro yields to money and roulette entries leave no visual log", () => {
   assert.match(html, /id="intro"/);
   assert.match(html, /id="money-display"[\s\S]*?hidden/);
-  assert.match(html, /id="goal-value"[^>]*>1000만원<\/strong>/);
+  assert.match(html, /id="goal-value"[^>]*>100만원<\/strong>/);
   assert.match(html, /id="celebration"[\s\S]*?aria-hidden="true"/);
   assert.equal(html.includes("data-log-sequence"), false);
   assert.equal(html.includes("data-log-state"), false);
@@ -77,4 +77,29 @@ test("the intro yields to money and roulette entries leave no visual log", () =>
     /\.focus-stage\.is-celebrating \.money-display \{[\s\S]*?visibility: visible/,
   );
   assert.doesNotMatch(script, /if \(state\.lastVictim\)/);
+});
+
+test("button feedback stays decorative, accessible, and reduced-motion safe", () => {
+  assert.match(html, /id="button-wave"[^>]*aria-hidden="true"/);
+  assert.match(html, /id="trade-record"/);
+  assert.match(html, /\.button\.is-pressed[\s\S]*button-press 80ms/);
+  assert.match(html, /\.button-wave\.is-active[\s\S]*button-wave 260ms/);
+  assert.match(html, /\.money-display\.is-rolling[\s\S]*money-roll 190ms/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(script, /window\.AudioContext \|\| window\.webkitAudioContext/);
+  assert.match(script, /navigator\.vibrate\(8\)/);
+  assert.match(
+    script,
+    /function rollMoneyDisplay\(\) \{[\s\S]*?if \(reducedMotion\.matches\) \{[\s\S]*?return;/,
+  );
+  assert.match(
+    script,
+    /function playButtonFeedback\(progression\) \{[\s\S]*?if \(reducedMotion\.matches\) \{[\s\S]*?return;/,
+  );
+  assert.match(
+    script,
+    /function vibrateButton\(\) \{[\s\S]*?reducedMotion\.matches[\s\S]*?navigator\.vibrate\(8\)/,
+  );
+  assert.match(script, /renderMoney\(state\.presses, \{ flash: true, roll: true \}\)/);
+  assert.doesNotMatch(`${html}\n${script}`, /confetti|firework|폭죽/i);
 });

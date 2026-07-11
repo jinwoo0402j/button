@@ -207,7 +207,11 @@ test("money goals unlock sequentially at the requested boundaries", () => {
   assert.deepEqual(
     MONEY_GOALS.map((goal) => goal.amount),
     [
+      1_000_000,
+      3_000_000,
+      5_000_000,
       10_000_000,
+      25_000_000,
       100_000_000,
       300_000_000,
       500_000_000,
@@ -218,11 +222,27 @@ test("money goals unlock sequentially at the requested boundaries", () => {
   );
   assert.deepEqual(
     MONEY_GOALS.map((goal) => goal.label),
-    ["1000만원", "1억", "3억", "5억", "10억", "50억", "100억"],
+    [
+      "100만원",
+      "300만원",
+      "500만원",
+      "1000만원",
+      "2500만원",
+      "1억",
+      "3억",
+      "5억",
+      "10억",
+      "50억",
+      "100억",
+    ],
   );
   assert.deepEqual(
     MONEY_GOALS.map((goal) => goal.requiredPresses),
-    [10, 100, 300, 500, 1_000, 5_000, 10_000],
+    [1, 3, 5, 10, 25, 100, 300, 500, 1_000, 5_000, 10_000],
+  );
+  assert.deepEqual(
+    MONEY_GOALS.slice(0, 5).map((goal) => goal.reward),
+    ["첫 거래 기록", "버튼 잔상", "CRT 색상", "목표 진행률", "새 버튼 음색"],
   );
 
   MONEY_GOALS.forEach((goal, index) => {
@@ -237,14 +257,18 @@ test("money goals unlock sequentially at the requested boundaries", () => {
 
 test("goal progress, remaining money, and roulette speeds derive only from presses", () => {
   assert.equal(progressionForPresses(0).progressPercent, 0);
-  assert.equal(progressionForPresses(5).progressPercent, 50);
+  assert.equal(progressionForPresses(2).progressPercent, 50);
+  assert.equal(progressionForPresses(4).progressPercent, 50);
   assert.equal(progressionForPresses(9).remainingMoney, 1_000_000);
   assert.equal(progressionForPresses(10).progressPercent, 0);
-  assert.equal(progressionForPresses(55).progressPercent, 50);
+  assert.equal(progressionForPresses(55).progressPercent, 40);
   assert.equal(progressionForPresses(9_999).remainingPresses, 1);
   assert.equal(progressionForPresses(10_000).complete, true);
   assert.equal(progressionForPresses(10_001).segmentProgress, 1);
   assert.equal(ROULETTE_DURATIONS_MS.length, MONEY_GOALS.length + 1);
+  assert.equal(progressionForPresses(25).rouletteDurationMs, 1_200);
+  assert.equal(progressionForPresses(100).rouletteDurationMs, 1_200);
+  assert.equal(progressionForPresses(300).rouletteDurationMs, 960);
 
   for (let index = 1; index < ROULETTE_DURATIONS_MS.length; index += 1) {
     assert.ok(ROULETTE_DURATIONS_MS[index] <= ROULETTE_DURATIONS_MS[index - 1]);
@@ -255,6 +279,19 @@ test("goal progress, remaining money, and roulette speeds derive only from press
   assert.ok(stopTimes.every((time, index) => index === 0 || time > stopTimes[index - 1]));
   assert.throws(() => progressionForPresses(-1), /outside the supported range/);
   assert.throws(() => rouletteStopTimes(0), /positive safe integer/);
+
+  assert.equal(progressionForPresses(0).tradeRecordUnlocked, false);
+  assert.equal(progressionForPresses(1).tradeRecordUnlocked, true);
+  assert.equal(progressionForPresses(2).buttonTrailUnlocked, false);
+  assert.equal(progressionForPresses(3).buttonTrailUnlocked, true);
+  assert.equal(progressionForPresses(4).crtColorUnlocked, false);
+  assert.equal(progressionForPresses(5).crtColorUnlocked, true);
+  assert.equal(progressionForPresses(9).progressUnlocked, false);
+  assert.equal(progressionForPresses(10).progressUnlocked, true);
+  assert.equal(progressionForPresses(24).enhancedSwitchToneUnlocked, false);
+  assert.equal(progressionForPresses(25).enhancedSwitchToneUnlocked, true);
+  assert.equal(progressionForPresses(99).holdSpaceUnlocked, false);
+  assert.equal(progressionForPresses(100).holdSpaceUnlocked, true);
 
   assert.deepEqual(Object.keys(defaultState()).sort(), [
     "lastVictim",

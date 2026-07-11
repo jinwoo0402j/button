@@ -75,6 +75,23 @@
         pointer-events: none;
       }
 
+      body.has-crt-color::before {
+        background:
+          linear-gradient(
+            90deg,
+            rgba(28, 235, 206, 0.014),
+            transparent 46%,
+            rgba(255, 62, 126, 0.012)
+          ),
+          repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent 2px,
+            rgba(84, 223, 121, 0.024) 3px,
+            rgba(0, 0, 0, 0.16) 4px
+          );
+      }
+
       button {
         font: inherit;
       }
@@ -194,15 +211,42 @@
       }
 
       .money-display__value {
+        display: inline-block;
         color: var(--foreground);
         font-size: clamp(2rem, 7vw, 3.35rem);
         letter-spacing: 0.045em;
         text-shadow: 0 0 0.7rem rgba(242, 245, 239, 0.22);
+        will-change: transform, opacity;
       }
 
       .money-display.is-increased .money-display__value {
         color: var(--green);
         text-shadow: 0 0 0.8rem rgba(84, 223, 121, 0.42);
+      }
+
+      .money-display.is-rolling .money-display__value {
+        animation: money-roll 190ms steps(5, end);
+      }
+
+      .money-display__record {
+        color: var(--muted);
+        font-size: clamp(0.62rem, 1.8vw, 0.72rem);
+        letter-spacing: 0.08em;
+      }
+
+      body.has-crt-color .status__value,
+      body.has-crt-color .money-display__value {
+        text-shadow:
+          -1px 0 rgba(44, 230, 255, 0.16),
+          1px 0 rgba(255, 72, 132, 0.14),
+          0 0 0.7rem rgba(242, 245, 239, 0.2);
+      }
+
+      body.has-crt-color .money-display.is-increased .money-display__value {
+        text-shadow:
+          -1px 0 rgba(44, 230, 255, 0.18),
+          1px 0 rgba(255, 72, 132, 0.16),
+          0 0 0.8rem rgba(84, 223, 121, 0.42);
       }
 
       .focus-stage.is-celebrating {
@@ -287,6 +331,10 @@
         -webkit-tap-highlight-color: transparent;
       }
 
+      .button.is-pressed {
+        animation: button-press 80ms steps(2, end);
+      }
+
       .button::before {
         margin-right: 0.42em;
         content: "[";
@@ -324,6 +372,33 @@
         text-decoration: underline;
         text-decoration-style: dotted;
         text-underline-offset: 0.45em;
+      }
+
+      .button-wave {
+        position: fixed;
+        inset: auto auto calc(max(1rem, env(safe-area-inset-bottom)) + 1.45rem) 50%;
+        z-index: 9;
+        width: 10rem;
+        height: 1rem;
+        background: repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent 2px,
+          rgba(84, 223, 121, 0.46) 3px,
+          transparent 4px
+        );
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-50%) scaleX(0.72);
+        transform-origin: center;
+      }
+
+      .button-wave.is-active {
+        animation: button-wave 260ms steps(6, end);
+      }
+
+      body.has-button-trail .button-wave.is-active {
+        animation: button-wave-trail 420ms steps(8, end);
       }
 
       .roulette-log {
@@ -423,6 +498,70 @@
         position: fixed;
         inset: 50% auto auto 50%;
         transform: translate(-50%, -50%);
+      }
+
+      @keyframes button-press {
+        0%, 100% {
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+        35%, 70% {
+          transform: translateX(-50%) translateY(2px) scaleX(0.96) scaleY(0.82);
+        }
+      }
+
+      @keyframes button-wave {
+        0% {
+          opacity: 0.56;
+          transform: translateX(-50%) scaleX(0.72) scaleY(0.7);
+        }
+        58% {
+          opacity: 0.28;
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(-50%) scaleX(1.55) scaleY(1.4);
+        }
+      }
+
+      @keyframes button-wave-trail {
+        0% {
+          opacity: 0.68;
+          filter: drop-shadow(0 0 0 rgba(84, 223, 121, 0));
+          transform: translateX(-50%) scaleX(0.72) scaleY(0.7);
+        }
+        48% {
+          opacity: 0.32;
+          filter:
+            drop-shadow(0 -5px 0 rgba(44, 230, 255, 0.16))
+            drop-shadow(0 5px 0 rgba(255, 72, 132, 0.12));
+        }
+        100% {
+          opacity: 0;
+          filter:
+            drop-shadow(0 -10px 0 rgba(44, 230, 255, 0))
+            drop-shadow(0 10px 0 rgba(255, 72, 132, 0));
+          transform: translateX(-50%) scaleX(1.9) scaleY(1.7);
+        }
+      }
+
+      @keyframes money-roll {
+        0% {
+          opacity: 0.36;
+          filter: blur(1px);
+          transform: translateY(0.5em);
+        }
+        38% {
+          opacity: 0.82;
+          filter: blur(0);
+          transform: translateY(-0.14em);
+        }
+        66% {
+          transform: translateY(0.06em);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       @keyframes cursor-blink {
@@ -559,7 +698,7 @@
       </div>
       <div id="goal-status" class="status">
         <span id="goal-label" class="status__label">다음 목표</span>
-        <strong id="goal-value" class="status__value">1000만원</strong>
+        <strong id="goal-value" class="status__value">100만원</strong>
         <span id="goal-progress" class="status__progress" hidden></span>
       </div>
     </header>
@@ -580,6 +719,7 @@
           <section id="money-display" class="money-display" aria-label="내 돈" hidden>
             <span class="money-display__label" aria-hidden="true">내 돈</span>
             <strong id="money" class="money-display__value">₩0</strong>
+            <span id="trade-record" class="money-display__record" hidden></span>
           </section>
 
           <div
@@ -596,6 +736,7 @@
 
         <ol id="roulette-log" class="roulette-log" aria-hidden="true"></ol>
         <p id="storage-warning" class="warning" role="status"></p>
+        <span id="button-wave" class="button-wave" aria-hidden="true"></span>
         <button
           id="press-button"
           class="button"
