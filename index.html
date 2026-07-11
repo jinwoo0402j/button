@@ -25,12 +25,18 @@
         --muted: #777c76;
         --line: #454a45;
         --amber: #e4aa3d;
+        --green: #54df79;
+        --green-bright: #7eff9f;
         --red: #ff4938;
         --red-bright: #ff6552;
       }
 
       * {
         box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
       }
 
       html {
@@ -110,30 +116,55 @@
         white-space: nowrap;
       }
 
+      .status__progress {
+        display: block;
+        min-height: 1.3em;
+        margin-top: 0.3rem;
+        color: var(--muted);
+        font-size: clamp(0.58rem, 1.8vw, 0.68rem);
+        letter-spacing: 0.04em;
+      }
+
+      .status.is-complete .status__value {
+        color: var(--green);
+        text-shadow: 0 0 0.5rem rgba(84, 223, 121, 0.28);
+      }
+
       .game {
-        display: grid;
+        display: flex;
         width: min(100%, 64rem);
         min-height: 100vh;
         min-height: 100svh;
         margin: 0 auto;
-        padding: clamp(6.8rem, 15vh, 8.5rem) clamp(0.9rem, 5vw, 3rem) 2rem;
-        align-items: start;
+        padding: clamp(6.8rem, 15vh, 8.5rem) clamp(0.9rem, 5vw, 3rem) 7rem;
       }
 
       .game__content {
         display: flex;
         width: 100%;
+        min-height: calc(100svh - 13.8rem);
         min-width: 0;
         flex-direction: column;
         align-items: center;
         text-align: center;
       }
 
+      .focus-stage {
+        display: grid;
+        width: 100%;
+        min-height: clamp(8.2rem, 24vh, 11.8rem);
+        place-items: center;
+      }
+
+      .focus-stage > * {
+        grid-area: 1 / 1;
+      }
+
       .subtitle {
         display: grid;
         width: 100%;
         min-height: 7.2rem;
-        margin: 0 0 clamp(1.2rem, 4vh, 2rem);
+        margin: 0;
         align-content: center;
         color: var(--foreground);
         font-size: clamp(1.05rem, 4.5vw, 1.9rem);
@@ -141,6 +172,81 @@
         line-height: 1.6;
         text-shadow: 0 0 0.55rem rgba(242, 245, 239, 0.2);
         text-wrap: balance;
+      }
+
+      .subtitle.is-dissolving,
+      .celebration.is-dissolving,
+      .log-entry.is-dissolving {
+        animation: text-dissolve 620ms steps(8, end) forwards;
+        pointer-events: none;
+      }
+
+      .money-display {
+        display: grid;
+        justify-items: center;
+        row-gap: 0.5rem;
+      }
+
+      .money-display__label {
+        color: var(--muted);
+        font-size: clamp(0.72rem, 2vw, 0.86rem);
+        letter-spacing: 0.08em;
+      }
+
+      .money-display__value {
+        color: var(--foreground);
+        font-size: clamp(2rem, 7vw, 3.35rem);
+        letter-spacing: 0.045em;
+        text-shadow: 0 0 0.7rem rgba(242, 245, 239, 0.22);
+      }
+
+      .money-display.is-increased .money-display__value {
+        color: var(--green);
+        text-shadow: 0 0 0.8rem rgba(84, 223, 121, 0.42);
+      }
+
+      .focus-stage.is-celebrating {
+        align-content: center;
+        grid-template-rows: auto auto;
+        row-gap: 0.8rem;
+      }
+
+      .focus-stage.is-celebrating .subtitle {
+        visibility: hidden;
+      }
+
+      .focus-stage.is-celebrating .money-display {
+        grid-area: 1 / 1;
+        visibility: visible;
+      }
+
+      .focus-stage.is-celebrating .celebration {
+        grid-area: 2 / 1;
+      }
+
+      .celebration {
+        display: grid;
+        z-index: 2;
+        justify-items: center;
+        row-gap: 0.45rem;
+        letter-spacing: 0.06em;
+      }
+
+      .celebration__title {
+        margin: 0;
+        color: var(--green);
+        font-size: clamp(1rem, 3vw, 1.35rem);
+        text-shadow: 0 0 0.6rem rgba(84, 223, 121, 0.36);
+      }
+
+      .celebration__goal {
+        color: var(--foreground);
+        font-size: clamp(1.45rem, 5vw, 2.3rem);
+      }
+
+      .celebration__reward {
+        color: var(--amber);
+        font-size: clamp(0.72rem, 2vw, 0.88rem);
       }
 
       .subtitle__line {
@@ -157,19 +263,22 @@
       }
 
       .button {
-        position: relative;
+        position: fixed;
+        inset: auto auto max(1rem, env(safe-area-inset-bottom)) 50%;
+        z-index: 10;
         width: auto;
         min-width: 10rem;
         flex: 0 0 auto;
         padding: 1rem 1.4rem;
         border: 0;
         background: transparent;
-        color: var(--red);
+        color: var(--green);
         cursor: pointer;
         font-size: clamp(1.35rem, 5vw, 2.15rem);
         letter-spacing: 0.11em;
-        text-shadow: 0 0 0.65rem rgba(255, 73, 56, 0.32);
+        text-shadow: 0 0 0.65rem rgba(84, 223, 121, 0.32);
         touch-action: manipulation;
+        transform: translateX(-50%);
         transition:
           color 80ms steps(2, end),
           opacity 80ms steps(2, end),
@@ -189,12 +298,17 @@
       }
 
       .button:hover {
-        color: var(--red-bright);
-        text-shadow: 0 0 0.9rem rgba(255, 101, 82, 0.5);
+        color: var(--green-bright);
+        text-shadow: 0 0 0.9rem rgba(126, 255, 159, 0.5);
       }
 
       .button:active {
-        color: var(--red-bright);
+        color: var(--green-bright);
+        opacity: 0.74;
+      }
+
+      .button.is-key-active {
+        color: var(--green-bright);
         opacity: 0.74;
       }
 
@@ -206,17 +320,18 @@
       .button:focus-visible {
         outline: 2px dotted currentColor;
         outline-offset: 0.45rem;
-        color: var(--red-bright);
+        color: var(--green-bright);
         text-decoration: underline;
         text-decoration-style: dotted;
         text-underline-offset: 0.45em;
       }
 
       .roulette-log {
+        flex: 0 1 auto;
         width: 100%;
-        max-height: min(38vh, 24rem);
-        max-height: min(38svh, 24rem);
-        margin: clamp(2rem, 6vh, 3rem) 0 0;
+        max-height: min(32vh, 19rem);
+        max-height: min(32svh, 19rem);
+        margin: clamp(0.8rem, 3vh, 1.5rem) 0 0;
         padding: 0;
         overflow-y: auto;
         border-top: 1px dashed var(--line);
@@ -236,23 +351,6 @@
         overflow: hidden;
         border-bottom: 1px dashed var(--line);
         animation: log-enter 120ms steps(3, end);
-      }
-
-      .log-entry__head {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 0.75rem;
-        color: var(--muted);
-        font-size: clamp(0.65rem, 2vw, 0.76rem);
-        letter-spacing: 0.05em;
-      }
-
-      .log-entry__state {
-        color: var(--amber);
-        text-shadow: 0 0 0.45rem rgba(228, 170, 61, 0.24);
       }
 
       .log-entry__grid {
@@ -297,11 +395,6 @@
         color: var(--red-bright);
         font-size: clamp(0.72rem, 2.1vw, 0.86rem);
         text-align: right;
-      }
-
-      .log-entry.is-complete .log-entry__state {
-        color: var(--red);
-        text-shadow: 0 0 0.45rem rgba(255, 73, 56, 0.28);
       }
 
       .log-entry.is-impact {
@@ -365,6 +458,29 @@
         }
       }
 
+      @keyframes text-dissolve {
+        0% {
+          opacity: 1;
+          filter: blur(0);
+          letter-spacing: inherit;
+          transform: translateY(0);
+        }
+        45% {
+          opacity: 0.62;
+          filter: blur(0.4px);
+        }
+        72% {
+          opacity: 0.3;
+          letter-spacing: 0.11em;
+        }
+        100% {
+          opacity: 0;
+          filter: blur(2px);
+          letter-spacing: 0.16em;
+          transform: translateY(-0.3rem);
+        }
+      }
+
       @media (max-width: 720px) {
         .status-bar {
           padding-inline: 0.85rem;
@@ -376,15 +492,16 @@
 
         .game {
           padding-top: 6.3rem;
+          padding-bottom: 6.2rem;
         }
 
-        .subtitle {
+        .focus-stage {
           min-height: 6.3rem;
         }
 
         .roulette-log {
-          max-height: 42vh;
-          max-height: 42svh;
+          max-height: 36vh;
+          max-height: 36svh;
         }
 
         .log-entry__grid {
@@ -412,6 +529,21 @@
         }
       }
 
+      @media (max-height: 700px) {
+        .game {
+          padding-top: 5.8rem;
+        }
+
+        .focus-stage {
+          min-height: 5.8rem;
+        }
+
+        .roulette-log {
+          max-height: 28vh;
+          max-height: 28svh;
+        }
+      }
+
       @media (forced-colors: active) {
         body::before {
           display: none;
@@ -425,27 +557,52 @@
         <span class="status__label">지구 사람</span>
         <strong id="population" class="status__value">8,199,768,010</strong>
       </div>
-      <div class="status">
-        <span class="status__label">내 돈</span>
-        <strong id="money" class="status__value">₩0</strong>
+      <div id="goal-status" class="status">
+        <span id="goal-label" class="status__label">다음 목표</span>
+        <strong id="goal-value" class="status__value">1000만원</strong>
+        <span id="goal-progress" class="status__progress" hidden></span>
       </div>
     </header>
 
     <main class="game">
       <div class="game__content">
-        <h1
-          class="subtitle"
-          aria-label="버튼 누른다. 너 빼고 한 명 죽는다. 너는 100만원 받는다."
-        >
-          <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
-          <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
-          <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
-        </h1>
+        <div id="focus-stage" class="focus-stage">
+          <h1
+            id="intro"
+            class="subtitle"
+            aria-label="버튼 누른다. 너 빼고 한 명 죽는다. 너는 100만원 받는다."
+          >
+            <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
+            <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
+            <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
+          </h1>
 
-        <button id="press-button" class="button" aria-label="버튼" type="button">버튼</button>
+          <section id="money-display" class="money-display" aria-label="내 돈" hidden>
+            <span class="money-display__label" aria-hidden="true">내 돈</span>
+            <strong id="money" class="money-display__value">₩0</strong>
+          </section>
+
+          <div
+            id="celebration"
+            class="celebration"
+            aria-hidden="true"
+            hidden
+          >
+            <p class="celebration__title">목표 달성</p>
+            <strong id="celebration-goal" class="celebration__goal"></strong>
+            <span id="celebration-reward" class="celebration__reward"></span>
+          </div>
+        </div>
 
         <ol id="roulette-log" class="roulette-log" aria-hidden="true"></ol>
         <p id="storage-warning" class="warning" role="status"></p>
+        <button
+          id="press-button"
+          class="button"
+          aria-keyshortcuts="Space"
+          aria-label="버튼"
+          type="button"
+        >버튼</button>
         <div
           id="announcements"
           class="sr-only"
@@ -458,10 +615,6 @@
 
     <template id="roulette-entry-template">
       <li class="log-entry">
-        <div class="log-entry__head">
-          <span data-log-sequence>#000000</span>
-          <span class="log-entry__state" data-log-state>추첨 중</span>
-        </div>
         <div class="log-entry__grid">
           <div class="log-field">
             <span class="log-field__label">국가/지역</span>

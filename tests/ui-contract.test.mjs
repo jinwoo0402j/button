@@ -8,7 +8,7 @@ const script = readFileSync(new URL("../game.js", import.meta.url), "utf8");
 test("the immersive UI removes visible meta copy and keeps the button label fixed", () => {
   assert.match(
     html,
-    /<button id="press-button" class="button" aria-label="버튼" type="button">버튼<\/button>/,
+    /<button\s+id="press-button"[\s\S]*?aria-keyshortcuts="Space"[\s\S]*?aria-label="버튼"[\s\S]*?type="button"\s*>버튼<\/button>/,
   );
 
   for (const removedText of [
@@ -55,6 +55,26 @@ test("the approved CRT theme communicates state with text color instead of panel
     html,
     /\.log-entry:not\(\.is-complete\) \.log-field__value[\s\S]*color: var\(--amber\)/,
   );
+  assert.match(html, /\.button \{[\s\S]*?color: var\(--green\)/);
   assert.doesNotMatch(html, /border-radius: 50%/);
   assert.doesNotMatch(html, /background: var\(--red\)/);
+});
+
+test("the intro yields to money and roulette entries leave no visual log", () => {
+  assert.match(html, /id="intro"/);
+  assert.match(html, /id="money-display"[\s\S]*?hidden/);
+  assert.match(html, /id="goal-value"[^>]*>1000만원<\/strong>/);
+  assert.match(html, /id="celebration"[\s\S]*?aria-hidden="true"/);
+  assert.equal(html.includes("data-log-sequence"), false);
+  assert.equal(html.includes("data-log-state"), false);
+  assert.ok(html.indexOf('id="roulette-log"') < html.indexOf('id="press-button"'));
+  assert.match(script, /classList\.add\("is-dissolving"\)/);
+  assert.match(script, /document\.addEventListener\("keydown", onSpaceKeyDown\)/);
+  assert.match(script, /window\.addEventListener\("blur", releaseSpaceKey\)/);
+  assert.match(script, /function announceGoal\(goal\)/);
+  assert.match(
+    html,
+    /\.focus-stage\.is-celebrating \.money-display \{[\s\S]*?visibility: visible/,
+  );
+  assert.doesNotMatch(script, /if \(state\.lastVictim\)/);
 });

@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  MONEY_GOALS,
   POPULATION_BASE,
   POPULATION_EPOCH_MS,
+  ROULETTE_DURATIONS_MS,
   commitPress,
   createUniformRandom,
   createWeightedSampler,
@@ -12,6 +14,8 @@ import {
   moneyForPresses,
   parseStoredState,
   populationAt,
+  progressionForPresses,
+  rouletteStopTimes,
   sampleVictim,
   serializeState,
   weightedIndex,
@@ -197,4 +201,64 @@ test("rapid consecutive commits record every press and restore the latest victim
   );
   assert.deepEqual(state.lastVictim, victims.at(-1));
   assert.deepEqual(restored, { state, recovered: false });
+});
+
+test("money goals unlock sequentially at the requested boundaries", () => {
+  assert.deepEqual(
+    MONEY_GOALS.map((goal) => goal.amount),
+    [
+      10_000_000,
+      100_000_000,
+      300_000_000,
+      500_000_000,
+      1_000_000_000,
+      5_000_000_000,
+      10_000_000_000,
+    ],
+  );
+  assert.deepEqual(
+    MONEY_GOALS.map((goal) => goal.label),
+    ["1000만원", "1억", "3억", "5억", "10억", "50억", "100억"],
+  );
+  assert.deepEqual(
+    MONEY_GOALS.map((goal) => goal.requiredPresses),
+    [10, 100, 300, 500, 1_000, 5_000, 10_000],
+  );
+
+  MONEY_GOALS.forEach((goal, index) => {
+    const before = progressionForPresses(goal.requiredPresses - 1);
+    const reached = progressionForPresses(goal.requiredPresses);
+    assert.equal(before.nextGoal.id, goal.id);
+    assert.equal(before.unlockedRewardCount, index);
+    assert.equal(reached.unlockedRewardCount, index + 1);
+    assert.equal(reached.nextGoal?.id || null, MONEY_GOALS[index + 1]?.id || null);
+  });
+});
+
+test("goal progress, remaining money, and roulette speeds derive only from presses", () => {
+  assert.equal(progressionForPresses(0).progressPercent, 0);
+  assert.equal(progressionForPresses(5).progressPercent, 50);
+  assert.equal(progressionForPresses(9).remainingMoney, 1_000_000);
+  assert.equal(progressionForPresses(10).progressPercent, 0);
+  assert.equal(progressionForPresses(55).progressPercent, 50);
+  assert.equal(progressionForPresses(9_999).remainingPresses, 1);
+  assert.equal(progressionForPresses(10_000).complete, true);
+  assert.equal(progressionForPresses(10_001).segmentProgress, 1);
+  assert.equal(ROULETTE_DURATIONS_MS.length, MONEY_GOALS.length + 1);
+
+  for (let index = 1; index < ROULETTE_DURATIONS_MS.length; index += 1) {
+    assert.ok(ROULETTE_DURATIONS_MS[index] <= ROULETTE_DURATIONS_MS[index - 1]);
+  }
+
+  const stopTimes = rouletteStopTimes(1_200);
+  assert.deepEqual(stopTimes, [600, 800, 1_000, 1_200]);
+  assert.ok(stopTimes.every((time, index) => index === 0 || time > stopTimes[index - 1]));
+  assert.throws(() => progressionForPresses(-1), /outside the supported range/);
+  assert.throws(() => rouletteStopTimes(0), /positive safe integer/);
+
+  assert.deepEqual(Object.keys(defaultState()).sort(), [
+    "lastVictim",
+    "presses",
+    "version",
+  ]);
 });

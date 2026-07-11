@@ -11,12 +11,36 @@ export const POPULATION_BASE = 8_199_768_010;
 export const POPULATION_EPOCH_MS = Date.parse("2026-07-11T12:58:15Z");
 export const REWARD_PER_PRESS = 1_000_000;
 export const BUTTON_CAUSE_RATE = 0.01;
+export const MONEY_GOALS = Object.freeze([
+  { id: "10m", amount: 10_000_000, requiredPresses: 10, label: "1000만원", reward: "목표 진행률" },
+  { id: "100m", amount: 100_000_000, requiredPresses: 100, label: "1억", reward: "SPACE 홀드 입력" },
+  { id: "300m", amount: 300_000_000, requiredPresses: 300, label: "3억", reward: "룰렛 가속 Ⅰ" },
+  { id: "500m", amount: 500_000_000, requiredPresses: 500, label: "5억", reward: "룰렛 가속 Ⅱ" },
+  { id: "1b", amount: 1_000_000_000, requiredPresses: 1_000, label: "10억", reward: "룰렛 가속 Ⅲ" },
+  { id: "5b", amount: 5_000_000_000, requiredPresses: 5_000, label: "50억", reward: "룰렛 가속 Ⅳ" },
+  { id: "10b", amount: 10_000_000_000, requiredPresses: 10_000, label: "100억", reward: "모든 기능" },
+].map(Object.freeze));
+export const ROULETTE_DURATIONS_MS = Object.freeze([
+  1_200,
+  1_200,
+  1_200,
+  960,
+  800,
+  650,
+  520,
+  420,
+]);
 
 const MAX_PRESSES = Math.floor(Number.MAX_SAFE_INTEGER / REWARD_PER_PRESS);
 const LOCATION_BY_CODE = new Map(LOCATIONS.map((location) => [location.code, location]));
 const CAUSE_BY_ID = new Map(CAUSES.map((cause) => [cause.id, cause]));
-const MAX_VISIBLE_LOGS = 60;
 const MAX_ANNOUNCEMENTS = 24;
+const INTRO_HOLD_MS = 700;
+const DISSOLVE_MS = 620;
+const RESULT_HOLD_MS = 420;
+const MONEY_FLASH_MS = 430;
+const CELEBRATION_HOLD_MS = 1_250;
+const SPACE_REPEAT_THROTTLE_MS = 90;
 const SUBTITLE_LINES = [
   "버튼 누른다.",
   "너 빼고 한 명 죽는다.",
@@ -51,6 +75,62 @@ export function moneyForPresses(presses) {
     throw new TypeError("presses is outside the supported range");
   }
   return presses * REWARD_PER_PRESS;
+}
+
+export function progressionForPresses(presses) {
+  const money = moneyForPresses(presses);
+  let unlockedRewardCount = 0;
+  while (
+    unlockedRewardCount < MONEY_GOALS.length
+    && presses >= MONEY_GOALS[unlockedRewardCount].requiredPresses
+  ) {
+    unlockedRewardCount += 1;
+  }
+
+  const previousGoal = unlockedRewardCount > 0
+    ? MONEY_GOALS[unlockedRewardCount - 1]
+    : null;
+  const nextGoal = MONEY_GOALS[unlockedRewardCount] || null;
+  const previousPresses = previousGoal?.requiredPresses || 0;
+  const segmentPresses = nextGoal
+    ? nextGoal.requiredPresses - previousPresses
+    : 0;
+  const completedSegmentPresses = nextGoal
+    ? presses - previousPresses
+    : 0;
+  const segmentProgress = nextGoal
+    ? Math.min(Math.max(completedSegmentPresses / segmentPresses, 0), 1)
+    : 1;
+  const remainingPresses = nextGoal
+    ? Math.max(nextGoal.requiredPresses - presses, 0)
+    : 0;
+
+  return {
+    money,
+    unlockedRewardCount,
+    previousGoal,
+    nextGoal,
+    segmentProgress,
+    progressPercent: Math.floor(segmentProgress * 100),
+    remainingPresses,
+    remainingMoney: remainingPresses * REWARD_PER_PRESS,
+    complete: nextGoal === null,
+    progressUnlocked: unlockedRewardCount >= 1,
+    holdSpaceUnlocked: unlockedRewardCount >= 2,
+    rouletteDurationMs: ROULETTE_DURATIONS_MS[unlockedRewardCount],
+  };
+}
+
+export function rouletteStopTimes(durationMs) {
+  if (!Number.isSafeInteger(durationMs) || durationMs <= 0) {
+    throw new TypeError("durationMs must be a positive safe integer");
+  }
+  return [
+    Math.round(durationMs * 0.5),
+    Math.round(durationMs * (2 / 3)),
+    Math.round(durationMs * (5 / 6)),
+    durationMs,
+  ];
 }
 
 export function decodeWeights(base64 = DEMOGRAPHIC_WEIGHTS_BASE64) {
@@ -293,6 +373,16 @@ function initializeGame() {
   const elements = {
     population: document.querySelector("#population"),
     money: document.querySelector("#money"),
+    moneyDisplay: document.querySelector("#money-display"),
+    focusStage: document.querySelector("#focus-stage"),
+    intro: document.querySelector("#intro"),
+    goalStatus: document.querySelector("#goal-status"),
+    goalLabel: document.querySelector("#goal-label"),
+    goalValue: document.querySelector("#goal-value"),
+    goalProgress: document.querySelector("#goal-progress"),
+    celebration: document.querySelector("#celebration"),
+    celebrationGoal: document.querySelector("#celebration-goal"),
+    celebrationReward: document.querySelector("#celebration-reward"),
     button: document.querySelector("#press-button"),
     log: document.querySelector("#roulette-log"),
     template: document.querySelector("#roulette-entry-template"),
@@ -304,6 +394,16 @@ function initializeGame() {
   if (
     !elements.population
     || !elements.money
+    || !elements.moneyDisplay
+    || !elements.focusStage
+    || !elements.intro
+    || !elements.goalStatus
+    || !elements.goalLabel
+    || !elements.goalValue
+    || !elements.goalProgress
+    || !elements.celebration
+    || !elements.celebrationGoal
+    || !elements.celebrationReward
     || !elements.button
     || !elements.log
     || !elements.template
@@ -343,7 +443,12 @@ function initializeGame() {
   let state = defaultState();
   let persistenceAvailable = true;
   const activeRolls = new Set();
+  const celebrationQueue = [];
   let rollTimer = null;
+  let moneyFlashTimer = null;
+  let celebrationActive = false;
+  let pendingMoneyFlash = false;
+  let lastSpacePressAt = Number.NEGATIVE_INFINITY;
 
   try {
     const parsed = parseStoredState(window.localStorage.getItem(STORAGE_KEY));
@@ -403,8 +508,96 @@ function initializeGame() {
     );
   }
 
-  function renderMoney(presses = state.presses) {
+  function flashMoneyDisplay() {
+    if (elements.moneyDisplay.hidden) {
+      pendingMoneyFlash = true;
+      return;
+    }
+
+    pendingMoneyFlash = false;
+    if (moneyFlashTimer !== null) {
+      window.clearTimeout(moneyFlashTimer);
+    }
+    elements.moneyDisplay.classList.remove("is-increased");
+    void elements.moneyDisplay.offsetWidth;
+    elements.moneyDisplay.classList.add("is-increased");
+    moneyFlashTimer = window.setTimeout(() => {
+      elements.moneyDisplay.classList.remove("is-increased");
+      moneyFlashTimer = null;
+    }, MONEY_FLASH_MS);
+  }
+
+  function renderMoney(presses = state.presses, { flash = false } = {}) {
     elements.money.textContent = moneyFormatter.format(moneyForPresses(presses));
+    if (flash) {
+      flashMoneyDisplay();
+    }
+  }
+
+  function renderGoal(progression = progressionForPresses(state.presses)) {
+    elements.goalStatus.classList.toggle("is-complete", progression.complete);
+
+    if (progression.complete) {
+      elements.goalLabel.textContent = "목표";
+      elements.goalValue.textContent = "전부 달성";
+      elements.goalProgress.hidden = true;
+      elements.goalProgress.textContent = "";
+      return;
+    }
+
+    elements.goalLabel.textContent = "다음 목표";
+    elements.goalValue.textContent = progression.nextGoal.label;
+    elements.goalProgress.hidden = !progression.progressUnlocked;
+    elements.goalProgress.textContent = progression.progressUnlocked
+      ? `진행 ${progression.progressPercent}%`
+      : "";
+  }
+
+  function showNextCelebration() {
+    if (
+      celebrationActive
+      || celebrationQueue.length === 0
+      || !elements.intro.hidden
+    ) {
+      return;
+    }
+
+    celebrationActive = true;
+    const goal = celebrationQueue.shift();
+    elements.celebrationGoal.textContent = goal.label;
+    elements.celebrationReward.textContent = `기능 해금 · ${goal.reward}`;
+    elements.celebration.classList.remove("is-dissolving");
+    elements.celebration.hidden = false;
+    elements.focusStage.classList.add("is-celebrating");
+    announceGoal(goal);
+
+    window.setTimeout(() => {
+      const finish = () => {
+        elements.celebration.hidden = true;
+        elements.celebration.classList.remove("is-dissolving");
+        elements.focusStage.classList.remove("is-celebrating");
+        celebrationActive = false;
+        showNextCelebration();
+      };
+
+      if (reducedMotion.matches) {
+        finish();
+        return;
+      }
+
+      elements.celebration.classList.add("is-dissolving");
+      window.setTimeout(finish, DISSOLVE_MS);
+    }, CELEBRATION_HOLD_MS);
+  }
+
+  function queueCelebrations(previousCount, nextCount) {
+    for (let index = previousCount; index < nextCount; index += 1) {
+      const goal = MONEY_GOALS[index];
+      if (goal) {
+        celebrationQueue.push(goal);
+      }
+    }
+    showNextCelebration();
   }
 
   function randomLocationText() {
@@ -420,16 +613,45 @@ function initializeGame() {
   }
 
   function playSubtitle() {
+    let exitStarted = false;
+
+    const revealMoney = () => {
+      elements.intro.hidden = true;
+      elements.intro.classList.remove("is-dissolving");
+      elements.moneyDisplay.hidden = false;
+      if (pendingMoneyFlash) {
+        flashMoneyDisplay();
+      }
+      showNextCelebration();
+    };
+
+    const beginExit = () => {
+      if (exitStarted) {
+        return;
+      }
+      exitStarted = true;
+
+      if (reducedMotion.matches) {
+        revealMoney();
+        return;
+      }
+
+      elements.intro.classList.add("is-dissolving");
+      window.setTimeout(revealMoney, DISSOLVE_MS);
+    };
+
     if (reducedMotion.matches) {
       elements.subtitleLines.forEach((line, index) => {
         line.textContent = SUBTITLE_LINES[index];
       });
+      window.setTimeout(beginExit, INTRO_HOLD_MS);
       return;
     }
 
     let lineIndex = 0;
     const typeLine = () => {
       if (lineIndex >= SUBTITLE_LINES.length) {
+        window.setTimeout(beginExit, INTRO_HOLD_MS);
         return;
       }
 
@@ -457,13 +679,11 @@ function initializeGame() {
     window.setTimeout(typeLine, 180);
   }
 
-  function createLogEntry(sequence) {
+  function createLogEntry() {
     const fragment = elements.template.content.cloneNode(true);
     const item = fragment.querySelector(".log-entry");
     const entry = {
       item,
-      sequence: item?.querySelector("[data-log-sequence]"),
-      state: item?.querySelector("[data-log-state]"),
       location: item?.querySelector("[data-log-location]"),
       age: item?.querySelector("[data-log-age]"),
       sex: item?.querySelector("[data-log-sex]"),
@@ -475,7 +695,6 @@ function initializeGame() {
       throw new Error("The roulette log template is incomplete");
     }
 
-    entry.sequence.textContent = `#${String(sequence).padStart(6, "0")}`;
     elements.log.appendChild(fragment);
     elements.log.scrollTop = elements.log.scrollHeight;
     return entry;
@@ -506,13 +725,12 @@ function initializeGame() {
     }
   }
 
-  function trimLog() {
-    while (elements.log.childElementCount > MAX_VISIBLE_LOGS) {
-      const oldest = elements.log.firstElementChild;
-      if (!oldest?.classList.contains("is-complete")) {
-        return;
-      }
-      oldest.remove();
+  function announceGoal(goal) {
+    const message = document.createElement("p");
+    message.textContent = `목표 ${goal.label} 달성. ${goal.reward} 해금.`;
+    elements.announcements.appendChild(message);
+    while (elements.announcements.childElementCount > MAX_ANNOUNCEMENTS) {
+      elements.announcements.firstElementChild?.remove();
     }
   }
 
@@ -523,7 +741,6 @@ function initializeGame() {
     { announceResult = true, impactResult = true } = {},
   ) {
     renderEntryVictim(entry, victim);
-    entry.state.textContent = "완료";
     entry.result.textContent = "한 명 죽음. +100만원.";
     entry.item.classList.add("is-complete");
 
@@ -536,8 +753,17 @@ function initializeGame() {
       announce(victim, sequence);
     }
 
-    trimLog();
     elements.log.scrollTop = elements.log.scrollHeight;
+
+    window.setTimeout(() => {
+      if (reducedMotion.matches) {
+        entry.item.remove();
+        return;
+      }
+
+      entry.item.classList.add("is-dissolving");
+      window.setTimeout(() => entry.item.remove(), DISSOLVE_MS);
+    }, RESULT_HOLD_MS);
   }
 
   function stopRollTimerIfIdle() {
@@ -558,9 +784,10 @@ function initializeGame() {
 
   function tickRoll(roll, now) {
     const elapsed = now - roll.startedAt;
+    const [locationStop, ageStop, sexStop, causeStop] = roll.stopTimes;
 
     if (!roll.fixed[0]) {
-      if (elapsed >= 600) {
+      if (elapsed >= locationStop) {
         roll.entry.location.textContent = locationLabel(roll.victim.locationCode);
         roll.fixed[0] = true;
       } else {
@@ -568,7 +795,7 @@ function initializeGame() {
       }
     }
     if (!roll.fixed[1]) {
-      if (elapsed >= 800) {
+      if (elapsed >= ageStop) {
         roll.entry.age.textContent = ageLabel(roll.victim.age);
         roll.fixed[1] = true;
       } else {
@@ -576,7 +803,7 @@ function initializeGame() {
       }
     }
     if (!roll.fixed[2]) {
-      if (elapsed >= 1_000) {
+      if (elapsed >= sexStop) {
         roll.entry.sex.textContent = sexLabel(roll.victim.sex);
         roll.fixed[2] = true;
       } else {
@@ -584,7 +811,7 @@ function initializeGame() {
       }
     }
     if (!roll.fixed[3]) {
-      if (elapsed >= 1_200) {
+      if (elapsed >= causeStop) {
         roll.entry.cause.textContent = causeLabel(roll.victim);
         roll.fixed[3] = true;
       } else {
@@ -592,7 +819,7 @@ function initializeGame() {
       }
     }
 
-    if (elapsed >= 1_200) {
+    if (elapsed >= causeStop) {
       finishRoll(roll);
     }
   }
@@ -610,8 +837,8 @@ function initializeGame() {
     }
   }
 
-  function startRoll(victim, sequence) {
-    const entry = createLogEntry(sequence);
+  function startRoll(victim, sequence, progression) {
+    const entry = createLogEntry();
 
     if (reducedMotion.matches) {
       entry.location.textContent = "결정 중…";
@@ -628,6 +855,7 @@ function initializeGame() {
       sequence,
       startedAt: performance.now(),
       fixed: [false, false, false, false],
+      stopTimes: rouletteStopTimes(progression.rouletteDurationMs),
     };
     activeRolls.add(roll);
     tickRoll(roll, roll.startedAt);
@@ -635,9 +863,60 @@ function initializeGame() {
   }
 
   function onVisibility() {
-    if (!document.hidden) {
-      tickActiveRolls();
+    if (document.hidden) {
+      releaseSpaceKey();
+      return;
     }
+    tickActiveRolls();
+  }
+
+  function isEditableTarget(target) {
+    return Boolean(
+      target
+      && (
+        ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+        || target.isContentEditable
+      )
+    );
+  }
+
+  function onSpaceKeyDown(event) {
+    if (
+      event.code !== "Space"
+      || event.isComposing
+      || isEditableTarget(event.target)
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    const progression = progressionForPresses(state.presses);
+    if (event.repeat && !progression.holdSpaceUnlocked) {
+      return;
+    }
+
+    const now = performance.now();
+    if (event.repeat && now - lastSpacePressAt < SPACE_REPEAT_THROTTLE_MS) {
+      return;
+    }
+
+    lastSpacePressAt = now;
+    elements.button.classList.add("is-key-active");
+    onPress();
+  }
+
+  function onSpaceKeyUp(event) {
+    if (event.code !== "Space") {
+      return;
+    }
+    if (!isEditableTarget(event.target)) {
+      event.preventDefault();
+    }
+    releaseSpaceKey();
+  }
+
+  function releaseSpaceKey() {
+    elements.button.classList.remove("is-key-active");
   }
 
   function onPress() {
@@ -647,16 +926,28 @@ function initializeGame() {
     }
 
     try {
+      const previousProgression = progressionForPresses(state.presses);
       const victim = sampleVictim({
         demographicSampler,
         causeSampler,
         rng,
       });
       state = commitPress(state, victim);
+      const nextProgression = progressionForPresses(state.presses);
       persist();
       renderPopulation();
-      renderMoney();
-      startRoll(victim, state.presses);
+      renderMoney(state.presses, { flash: true });
+      renderGoal(nextProgression);
+      startRoll(victim, state.presses, nextProgression);
+      if (
+        nextProgression.unlockedRewardCount
+        > previousProgression.unlockedRewardCount
+      ) {
+        queueCelebrations(
+          previousProgression.unlockedRewardCount,
+          nextProgression.unlockedRewardCount,
+        );
+      }
     } catch {
       elements.warning.textContent = "추첨 실패. 다시 누름.";
     }
@@ -664,18 +955,14 @@ function initializeGame() {
 
   renderPopulation();
   renderMoney();
+  renderGoal();
   playSubtitle();
 
-  if (state.lastVictim) {
-    const restoredEntry = createLogEntry(state.presses);
-    finishEntry(restoredEntry, state.lastVictim, state.presses, {
-      announceResult: false,
-      impactResult: false,
-    });
-  }
-
   elements.button.addEventListener("click", onPress);
+  document.addEventListener("keydown", onSpaceKeyDown);
+  document.addEventListener("keyup", onSpaceKeyUp);
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("blur", releaseSpaceKey);
   window.setInterval(renderPopulation, 500);
 }
 
