@@ -7,7 +7,7 @@
 > 이 게임은 비그래픽 가상 실험이다. 실제 사람, 실제 죽음, 실제 지급과 관계없다. 표시 인구와 모든 추첨 확률은 추정치다. 실제 이름·도시·개인정보를 생성하거나 사용하지 않는다.
 
 - 저장소: <https://github.com/jinwoo0402j/button>
-- 라이브 데모: `LIVE_DEMO_URL`
+- 라이브 데모: <https://button-iota-one.vercel.app>
 
 ## 게임
 
@@ -67,4 +67,4 @@ node --test
 
 Vercel에서 GitHub 저장소를 Import한 뒤 프로젝트 이름을 `button`, Framework Preset을 `Other`로 둔다. Build Command는 비워 두고 Root Directory와 Output Directory는 저장소 루트 `.`을 사용하며 Production Branch는 `main`으로 설정한다. 이후 `main` 푸시가 정적 사이트를 자동 배포한다.
 
-배포가 끝나면 이 문서의 `LIVE_DEMO_URL`을 실제 `.vercel.app` 주소로 교체한다.
+프로덕션은 <https://button-iota-one.vercel.app>에서 확인할 수 있다.
