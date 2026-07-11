@@ -160,3 +160,41 @@ test("one commit creates exactly one death/reward record", () => {
     POPULATION_BASE - 1,
   );
 });
+
+test("rapid consecutive commits record every press and restore the latest victim", () => {
+  const victims = [
+    {
+      locationCode: LOCATIONS[0].code,
+      age: 19,
+      sex: "female",
+      causeId: CAUSES[0].id,
+      buttonCause: false,
+    },
+    {
+      locationCode: LOCATIONS[1].code,
+      age: 44,
+      sex: "male",
+      causeId: CAUSES[1].id,
+      buttonCause: false,
+    },
+    {
+      locationCode: LOCATIONS[2].code,
+      age: 81,
+      sex: "female",
+      causeId: "button",
+      buttonCause: true,
+    },
+  ];
+
+  const state = victims.reduce(commitPress, defaultState());
+  const restored = parseStoredState(serializeState(state));
+
+  assert.equal(state.presses, 3);
+  assert.equal(moneyForPresses(state.presses), 3_000_000);
+  assert.equal(
+    populationAt(POPULATION_EPOCH_MS, state.presses),
+    POPULATION_BASE - 3,
+  );
+  assert.deepEqual(state.lastVictim, victims.at(-1));
+  assert.deepEqual(restored, { state, recovered: false });
+});

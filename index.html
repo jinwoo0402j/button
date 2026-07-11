@@ -3,21 +3,30 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#090909">
+    <meta name="theme-color" content="#080808">
     <meta
       name="description"
-      content="100만원을 받는 대신 가상의 세계 인구 한 명이 줄어드는 버튼 사고실험."
+      content="버튼을 누르면 가상의 세계 인구 한 명이 줄고 100만원을 받는 블랙코미디 게임."
     >
     <title>버튼</title>
     <style>
+      @font-face {
+        font-family: "Galmuri11";
+        src: url("./assets/fonts/Galmuri11-Bold.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 700;
+        font-display: swap;
+      }
+
       :root {
         color-scheme: dark;
-        --background: #090909;
-        --foreground: #f5f2ec;
-        --muted: #9d9b96;
-        --line: #383735;
-        --red: #dc252d;
-        --red-dark: #9d1017;
+        --background: #080808;
+        --foreground: #f4f1e8;
+        --muted: #888781;
+        --line: #343330;
+        --red: #df252e;
+        --red-bright: #ff5058;
+        --red-dark: #971018;
       }
 
       * {
@@ -37,38 +46,24 @@
         overflow-x: hidden;
         background: var(--background);
         color: var(--foreground);
-        font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+        font-family: "Galmuri11", "Apple SD Gothic Neo", system-ui, sans-serif;
+        font-synthesis: none;
+        font-weight: 700;
       }
 
-      button,
-      a {
+      button {
         font: inherit;
-      }
-
-      .impact-layer {
-        position: fixed;
-        inset: 0;
-        z-index: 10;
-        pointer-events: none;
-        background: rgba(220, 37, 45, 0);
-      }
-
-      body.impact .impact-layer {
-        animation: red-pulse 160ms ease-out;
-      }
-
-      body.impact .game {
-        animation: small-shake 160ms linear;
       }
 
       .status-bar {
         position: fixed;
         inset: 0 0 auto;
-        z-index: 2;
+        z-index: 5;
         display: flex;
         justify-content: space-between;
         gap: 1rem;
-        padding: clamp(1rem, 3vw, 2rem);
+        padding: clamp(1rem, 3vw, 1.8rem);
+        background: linear-gradient(var(--background) 72%, transparent);
         pointer-events: none;
       }
 
@@ -83,174 +78,214 @@
 
       .status__label {
         display: block;
-        margin-bottom: 0.2rem;
+        margin-bottom: 0.35rem;
         color: var(--muted);
-        font-size: clamp(0.68rem, 2vw, 0.82rem);
-        font-weight: 700;
-        letter-spacing: 0.08em;
+        font-size: clamp(0.68rem, 2vw, 0.78rem);
+        letter-spacing: 0.04em;
       }
 
       .status__value {
         display: block;
         overflow: hidden;
-        font-size: clamp(0.92rem, 3.3vw, 1.35rem);
-        font-weight: 800;
+        font-size: clamp(0.92rem, 3.2vw, 1.28rem);
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
-      .status__hint {
-        display: block;
-        margin-top: 0.2rem;
-        color: var(--muted);
-        font-size: clamp(0.58rem, 1.8vw, 0.7rem);
-        letter-spacing: 0.02em;
-      }
-
       .game {
         display: grid;
-        width: min(100%, 52rem);
+        width: min(100%, 58rem);
         min-height: 100vh;
         min-height: 100svh;
         margin: 0 auto;
-        padding: clamp(7.5rem, 17vh, 10rem) clamp(1rem, 5vw, 3rem) 8.5rem;
-        place-items: center;
+        padding: clamp(6.8rem, 15vh, 8.5rem) clamp(0.9rem, 5vw, 3rem) 2rem;
+        align-items: start;
       }
 
       .game__content {
         display: flex;
         width: 100%;
+        min-width: 0;
         flex-direction: column;
         align-items: center;
         text-align: center;
       }
 
-      .rule {
-        margin: 0 0 clamp(1.5rem, 5vh, 2.8rem);
-        font-size: clamp(1.2rem, 4.7vw, 2rem);
-        font-weight: 800;
-        letter-spacing: -0.025em;
-        line-height: 1.55;
+      .subtitle {
+        display: grid;
+        width: 100%;
+        min-height: 7.2rem;
+        margin: 0 0 clamp(1.2rem, 4vh, 2rem);
+        align-content: center;
+        font-size: clamp(1.05rem, 4.5vw, 1.75rem);
+        letter-spacing: 0.015em;
+        line-height: 1.6;
+        text-wrap: balance;
       }
 
-      .rule span {
+      .subtitle__line {
         display: block;
+        min-height: 1.6em;
+      }
+
+      .subtitle__line.is-typing::after {
+        content: "▮";
+        display: inline-block;
+        margin-left: 0.12em;
+        color: var(--red-bright);
+        animation: cursor-blink 560ms steps(1, end) infinite;
       }
 
       .button {
         position: relative;
-        width: clamp(8rem, 30vw, 10.5rem);
+        width: clamp(7.8rem, 29vw, 10rem);
         aspect-ratio: 1;
-        border: 0.4rem solid #ff5157;
+        flex: 0 0 auto;
+        border: 0.38rem solid var(--red-bright);
         border-radius: 50%;
         background: var(--red);
         box-shadow:
-          0 0.75rem 0 var(--red-dark),
-          0 1.2rem 2.4rem rgba(0, 0, 0, 0.5);
+          0 0.7rem 0 var(--red-dark),
+          0 1.15rem 2.3rem rgba(0, 0, 0, 0.58);
         color: #fff;
         cursor: pointer;
-        font-size: clamp(1.1rem, 4vw, 1.45rem);
-        font-weight: 900;
-        letter-spacing: -0.02em;
+        font-size: clamp(1.1rem, 4vw, 1.4rem);
+        letter-spacing: 0.04em;
         touch-action: manipulation;
-        transform: translateY(-0.35rem);
+        transform: translateY(-0.3rem);
         transition:
-          filter 100ms ease,
-          transform 100ms ease,
-          box-shadow 100ms ease;
+          filter 80ms steps(2, end),
+          transform 80ms steps(2, end),
+          box-shadow 80ms steps(2, end);
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
       }
 
-      .button:hover:not(:disabled) {
-        filter: brightness(1.1);
+      .button:hover {
+        filter: brightness(1.08);
       }
 
-      .button:active:not(:disabled) {
+      .button:active {
         box-shadow:
-          0 0.3rem 0 var(--red-dark),
-          0 0.7rem 1.4rem rgba(0, 0, 0, 0.45);
-        transform: translateY(0.1rem);
+          0 0.25rem 0 var(--red-dark),
+          0 0.65rem 1.3rem rgba(0, 0, 0, 0.5);
+        transform: translateY(0.12rem);
       }
 
       .button:disabled {
-        cursor: wait;
-        filter: grayscale(0.35) brightness(0.8);
+        cursor: not-allowed;
+        filter: grayscale(0.5);
       }
 
-      .button:focus-visible,
-      a:focus-visible {
+      .button:focus-visible {
         outline: 0.2rem solid #fff;
-        outline-offset: 0.35rem;
+        outline-offset: 0.4rem;
       }
 
-      .slots {
-        display: grid;
+      .roulette-log {
         width: 100%;
-        margin-top: clamp(2.2rem, 7vh, 4rem);
-        border-block: 1px solid var(--line);
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        max-height: min(38vh, 24rem);
+        max-height: min(38svh, 24rem);
+        margin: clamp(2rem, 6vh, 3rem) 0 0;
+        padding: 0;
+        overflow-y: auto;
+        border-top: 1px solid var(--line);
+        list-style: none;
+        scrollbar-color: var(--line) transparent;
+        scrollbar-width: thin;
+        text-align: left;
       }
 
-      .slot {
+      .roulette-log:empty {
+        display: none;
+      }
+
+      .log-entry {
+        position: relative;
+        padding: 0.9rem 0.15rem 1rem;
+        overflow: hidden;
+        border-bottom: 1px solid var(--line);
+        animation: log-enter 120ms steps(3, end);
+      }
+
+      .log-entry__head {
+        display: flex;
         min-width: 0;
-        padding: 1rem 0.6rem 1.15rem;
-      }
-
-      .slot + .slot {
-        border-left: 1px solid var(--line);
-      }
-
-      .slot__label {
-        display: block;
-        margin-bottom: 0.5rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
         color: var(--muted);
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
+        font-size: clamp(0.65rem, 2vw, 0.76rem);
+        letter-spacing: 0.05em;
       }
 
-      .slot__value {
+      .log-entry__state {
+        color: #c5c2ba;
+      }
+
+      .log-entry__grid {
+        display: grid;
+        min-width: 0;
+        grid-template-columns: 1.35fr 0.75fr 0.75fr 1.35fr;
+      }
+
+      .log-field {
+        min-width: 0;
+        padding: 0 0.65rem;
+      }
+
+      .log-field:first-child {
+        padding-left: 0;
+      }
+
+      .log-field:last-child {
+        padding-right: 0;
+      }
+
+      .log-field + .log-field {
+        border-left: 1px dashed var(--line);
+      }
+
+      .log-field__label {
         display: block;
-        min-height: 2.8em;
-        overflow-wrap: anywhere;
-        font-size: clamp(0.86rem, 2.5vw, 1.05rem);
-        font-weight: 800;
-        line-height: 1.4;
+        margin-bottom: 0.35rem;
+        color: var(--muted);
+        font-size: clamp(0.6rem, 1.8vw, 0.7rem);
+        letter-spacing: 0.04em;
       }
 
-      .reward {
-        min-height: 1.7em;
-        margin: 1.1rem 0 0;
-        color: #ff5f65;
-        font-size: clamp(1rem, 3vw, 1.25rem);
-        font-weight: 900;
+      .log-field__value {
+        display: block;
+        min-height: 1.5em;
+        overflow: hidden;
+        color: var(--foreground);
+        font-size: clamp(0.78rem, 2.4vw, 0.98rem);
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .log-entry__result {
+        min-height: 1.35em;
+        margin: 0.75rem 0 0;
+        color: var(--red-bright);
+        font-size: clamp(0.72rem, 2.1vw, 0.86rem);
+        text-align: right;
+      }
+
+      .log-entry.is-complete .log-entry__state {
+        color: var(--red-bright);
+      }
+
+      .log-entry.is-impact {
+        animation: log-impact 160ms steps(4, end);
       }
 
       .warning {
         min-height: 1.4em;
-        margin: 0.45rem 0 0;
-        color: #f0c98e;
-        font-size: 0.78rem;
-      }
-
-      .footnote {
-        position: fixed;
-        inset: auto 0 0;
-        z-index: 2;
-        padding: 1rem clamp(1rem, 4vw, 2rem) max(1rem, env(safe-area-inset-bottom));
-        background: linear-gradient(transparent, var(--background) 28%);
-        color: var(--muted);
-        font-size: clamp(0.65rem, 2vw, 0.75rem);
-        line-height: 1.6;
-        text-align: center;
-      }
-
-      .footnote p {
-        margin: 0;
-      }
-
-      .footnote a {
-        color: #c8c6c0;
-        text-underline-offset: 0.2em;
+        margin: 0.65rem 0 0;
+        color: #e9bd80;
+        font-size: 0.72rem;
       }
 
       .sr-only {
@@ -268,22 +303,39 @@
         position: fixed;
         inset: 50% auto auto 50%;
         transform: translate(-50%, -50%);
-        font-weight: 700;
       }
 
-      @keyframes red-pulse {
+      @keyframes cursor-blink {
+        0%, 48% { opacity: 1; }
+        49%, 100% { opacity: 0; }
+      }
+
+      @keyframes log-enter {
+        from {
+          opacity: 0;
+          transform: translateY(-0.35rem);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes log-impact {
         0% {
-          background: rgba(220, 37, 45, 0.24);
+          background: rgba(223, 37, 46, 0.2);
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-2px);
+        }
+        75% {
+          transform: translateX(2px);
         }
         100% {
-          background: rgba(220, 37, 45, 0);
+          background: rgba(223, 37, 46, 0);
+          transform: translateX(0);
         }
-      }
-
-      @keyframes small-shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-2px); }
-        75% { transform: translateX(2px); }
       }
 
       @media (max-width: 520px) {
@@ -292,20 +344,38 @@
         }
 
         .status {
-          max-width: 52%;
+          max-width: 54%;
         }
 
-        .slots {
+        .game {
+          padding-top: 6.3rem;
+        }
+
+        .subtitle {
+          min-height: 6.3rem;
+        }
+
+        .roulette-log {
+          max-height: 42vh;
+          max-height: 42svh;
+        }
+
+        .log-entry__grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          row-gap: 0.8rem;
         }
 
-        .slot:nth-child(3) {
+        .log-field {
+          padding-inline: 0.55rem;
+        }
+
+        .log-field:nth-child(odd) {
+          padding-left: 0;
           border-left: 0;
-          border-top: 1px solid var(--line);
         }
 
-        .slot:nth-child(4) {
-          border-top: 1px solid var(--line);
+        .log-field:nth-child(even) {
+          padding-right: 0;
         }
       }
 
@@ -322,65 +392,69 @@
     </style>
   </head>
   <body>
-    <div class="impact-layer" aria-hidden="true"></div>
-
     <header class="status-bar" aria-label="게임 상태">
       <div class="status">
         <span class="status__label">지구 사람</span>
         <strong id="population" class="status__value">8,199,768,010</strong>
-        <span class="status__hint">매초 +2 · 버튼 -1</span>
       </div>
       <div class="status">
         <span class="status__label">내 돈</span>
         <strong id="money" class="status__value">₩0</strong>
-        <span class="status__hint">이 브라우저</span>
       </div>
     </header>
 
     <main class="game">
       <div class="game__content">
-        <h1 class="rule">
-          <span>버튼 누른다.</span>
-          <span>너 빼고 한 명 죽는다.</span>
-          <span>너는 100만원 받는다.</span>
+        <h1
+          class="subtitle"
+          aria-label="버튼 누른다. 너 빼고 한 명 죽는다. 너는 100만원 받는다."
+        >
+          <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
+          <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
+          <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
         </h1>
 
-        <button id="press-button" class="button" type="button">누른다</button>
+        <button id="press-button" class="button" type="button">버튼</button>
 
-        <section class="slots" aria-hidden="true">
-          <div class="slot">
-            <span class="slot__label">국가/지역</span>
-            <strong id="slot-location" class="slot__value">—</strong>
-          </div>
-          <div class="slot">
-            <span class="slot__label">나이</span>
-            <strong id="slot-age" class="slot__value">—</strong>
-          </div>
-          <div class="slot">
-            <span class="slot__label">성별</span>
-            <strong id="slot-sex" class="slot__value">—</strong>
-          </div>
-          <div class="slot">
-            <span class="slot__label">사인</span>
-            <strong id="slot-cause" class="slot__value">—</strong>
-          </div>
-        </section>
-
-        <p id="reward" class="reward" aria-hidden="true"></p>
+        <ol id="roulette-log" class="roulette-log" aria-hidden="true"></ol>
         <p id="storage-warning" class="warning" role="status"></p>
-        <p id="announcement" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+        <div
+          id="announcements"
+          class="sr-only"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+        ></div>
       </div>
     </main>
 
-    <footer class="footnote">
-      <p>가상 추첨. 실제 사람 아님. 인구·확률은 추정.</p>
-      <p>
-        인구 가중치:
-        <a href="https://www.un.org/development/desa/pd/content/world-population-prospects-2024-dataset">UN WPP 2024</a>
-        · 사인 공개 집계:
-        <a href="https://www.who.int/news-room/fact-sheets/detail/the-top-10-causes-of-death">WHO 2021</a>
-      </p>
-    </footer>
+    <template id="roulette-entry-template">
+      <li class="log-entry">
+        <div class="log-entry__head">
+          <span data-log-sequence>#000000</span>
+          <span class="log-entry__state" data-log-state>추첨 중</span>
+        </div>
+        <div class="log-entry__grid">
+          <div class="log-field">
+            <span class="log-field__label">국가/지역</span>
+            <strong class="log-field__value" data-log-location>—</strong>
+          </div>
+          <div class="log-field">
+            <span class="log-field__label">나이</span>
+            <strong class="log-field__value" data-log-age>—</strong>
+          </div>
+          <div class="log-field">
+            <span class="log-field__label">성별</span>
+            <strong class="log-field__value" data-log-sex>—</strong>
+          </div>
+          <div class="log-field">
+            <span class="log-field__label">사인</span>
+            <strong class="log-field__value" data-log-cause>—</strong>
+          </div>
+        </div>
+        <p class="log-entry__result" data-log-result></p>
+      </li>
+    </template>
 
     <noscript><p class="noscript">자바스크립트 필요.</p></noscript>
     <script type="module" src="./game.js"></script>

@@ -15,6 +15,13 @@ export const BUTTON_CAUSE_RATE = 0.01;
 const MAX_PRESSES = Math.floor(Number.MAX_SAFE_INTEGER / REWARD_PER_PRESS);
 const LOCATION_BY_CODE = new Map(LOCATIONS.map((location) => [location.code, location]));
 const CAUSE_BY_ID = new Map(CAUSES.map((cause) => [cause.id, cause]));
+const MAX_VISIBLE_LOGS = 60;
+const MAX_ANNOUNCEMENTS = 24;
+const SUBTITLE_LINES = [
+  "버튼 누른다.",
+  "너 빼고 한 명 죽는다.",
+  "너는 100만원 받는다.",
+];
 
 export function defaultState() {
   return {
@@ -287,16 +294,23 @@ function initializeGame() {
     population: document.querySelector("#population"),
     money: document.querySelector("#money"),
     button: document.querySelector("#press-button"),
-    location: document.querySelector("#slot-location"),
-    age: document.querySelector("#slot-age"),
-    sex: document.querySelector("#slot-sex"),
-    cause: document.querySelector("#slot-cause"),
-    reward: document.querySelector("#reward"),
+    log: document.querySelector("#roulette-log"),
+    template: document.querySelector("#roulette-entry-template"),
     warning: document.querySelector("#storage-warning"),
-    announcement: document.querySelector("#announcement"),
+    announcements: document.querySelector("#announcements"),
+    subtitleLines: Array.from(document.querySelectorAll("[data-subtitle-line]")),
   };
 
-  if (Object.values(elements).some((element) => !element)) {
+  if (
+    !elements.population
+    || !elements.money
+    || !elements.button
+    || !elements.log
+    || !elements.template
+    || !elements.warning
+    || !elements.announcements
+    || elements.subtitleLines.length !== SUBTITLE_LINES.length
+  ) {
     throw new Error("The game markup is incomplete");
   }
 
@@ -328,7 +342,8 @@ function initializeGame() {
 
   let state = defaultState();
   let persistenceAvailable = true;
-  let rolling = false;
+  const activeRolls = new Set();
+  let rollTimer = null;
 
   try {
     const parsed = parseStoredState(window.localStorage.getItem(STORAGE_KEY));
@@ -382,13 +397,6 @@ function initializeGame() {
       : (CAUSE_BY_ID.get(victim.causeId)?.label || "기타");
   }
 
-  function renderVictim(victim) {
-    elements.location.textContent = locationLabel(victim.locationCode);
-    elements.age.textContent = ageLabel(victim.age);
-    elements.sex.textContent = sexLabel(victim.sex);
-    elements.cause.textContent = causeLabel(victim);
-  }
-
   function renderPopulation() {
     elements.population.textContent = numberFormatter.format(
       populationAt(Date.now(), state.presses),
@@ -411,8 +419,79 @@ function initializeGame() {
     return CAUSES[Math.floor(rng() * CAUSES.length)].label;
   }
 
-  function announce(victim) {
-    elements.announcement.textContent = [
+  function playSubtitle() {
+    if (reducedMotion.matches) {
+      elements.subtitleLines.forEach((line, index) => {
+        line.textContent = SUBTITLE_LINES[index];
+      });
+      return;
+    }
+
+    let lineIndex = 0;
+    const typeLine = () => {
+      if (lineIndex >= SUBTITLE_LINES.length) {
+        return;
+      }
+
+      const line = elements.subtitleLines[lineIndex];
+      const glyphs = Array.from(SUBTITLE_LINES[lineIndex]);
+      let glyphIndex = 0;
+      line.classList.add("is-typing");
+
+      const typeGlyph = () => {
+        glyphIndex += 1;
+        line.textContent = glyphs.slice(0, glyphIndex).join("");
+        if (glyphIndex < glyphs.length) {
+          window.setTimeout(typeGlyph, 38);
+          return;
+        }
+
+        line.classList.remove("is-typing");
+        lineIndex += 1;
+        window.setTimeout(typeLine, 170);
+      };
+
+      typeGlyph();
+    };
+
+    window.setTimeout(typeLine, 180);
+  }
+
+  function createLogEntry(sequence) {
+    const fragment = elements.template.content.cloneNode(true);
+    const item = fragment.querySelector(".log-entry");
+    const entry = {
+      item,
+      sequence: item?.querySelector("[data-log-sequence]"),
+      state: item?.querySelector("[data-log-state]"),
+      location: item?.querySelector("[data-log-location]"),
+      age: item?.querySelector("[data-log-age]"),
+      sex: item?.querySelector("[data-log-sex]"),
+      cause: item?.querySelector("[data-log-cause]"),
+      result: item?.querySelector("[data-log-result]"),
+    };
+
+    if (Object.values(entry).some((element) => !element)) {
+      throw new Error("The roulette log template is incomplete");
+    }
+
+    entry.sequence.textContent = `#${String(sequence).padStart(6, "0")}`;
+    elements.log.appendChild(fragment);
+    elements.log.scrollTop = elements.log.scrollHeight;
+    return entry;
+  }
+
+  function renderEntryVictim(entry, victim) {
+    entry.location.textContent = locationLabel(victim.locationCode);
+    entry.age.textContent = ageLabel(victim.age);
+    entry.sex.textContent = sexLabel(victim.sex);
+    entry.cause.textContent = causeLabel(victim);
+  }
+
+  function announce(victim, sequence) {
+    const message = document.createElement("p");
+    message.textContent = [
+      `${sequence}번째.`,
       "한 명 죽음.",
       locationLabel(victim.locationCode),
       ageLabel(victim.age),
@@ -420,115 +499,150 @@ function initializeGame() {
       `사인 ${causeLabel(victim)}.`,
       "100만원 받음.",
     ].join(" ");
+
+    elements.announcements.appendChild(message);
+    while (elements.announcements.childElementCount > MAX_ANNOUNCEMENTS) {
+      elements.announcements.firstElementChild?.remove();
+    }
   }
 
-  function impact() {
-    document.body.classList.remove("impact");
-    void document.body.offsetWidth;
-    document.body.classList.add("impact");
-    window.setTimeout(() => document.body.classList.remove("impact"), 180);
+  function trimLog() {
+    while (elements.log.childElementCount > MAX_VISIBLE_LOGS) {
+      const oldest = elements.log.firstElementChild;
+      if (!oldest?.classList.contains("is-complete")) {
+        return;
+      }
+      oldest.remove();
+    }
   }
 
-  function finishRoll(victim, timer, onVisibility) {
-    if (!rolling) {
+  function finishEntry(
+    entry,
+    victim,
+    sequence,
+    { announceResult = true, impactResult = true } = {},
+  ) {
+    renderEntryVictim(entry, victim);
+    entry.state.textContent = "완료";
+    entry.result.textContent = "한 명 죽음. +100만원.";
+    entry.item.classList.add("is-complete");
+
+    if (impactResult && !reducedMotion.matches) {
+      entry.item.classList.add("is-impact");
+      window.setTimeout(() => entry.item.classList.remove("is-impact"), 180);
+    }
+
+    if (announceResult) {
+      announce(victim, sequence);
+    }
+
+    trimLog();
+    elements.log.scrollTop = elements.log.scrollHeight;
+  }
+
+  function stopRollTimerIfIdle() {
+    if (activeRolls.size === 0 && rollTimer !== null) {
+      window.clearInterval(rollTimer);
+      rollTimer = null;
+    }
+  }
+
+  function finishRoll(roll) {
+    if (!activeRolls.has(roll)) {
       return;
     }
-    if (timer !== null) {
-      window.clearInterval(timer);
-    }
-    document.removeEventListener("visibilitychange", onVisibility);
-    renderVictim(victim);
-    renderMoney();
-    elements.reward.textContent = "한 명 죽음. +100만원.";
-    elements.button.textContent = "또 누른다";
-    elements.button.disabled = false;
-    rolling = false;
-    announce(victim);
-    impact();
+    activeRolls.delete(roll);
+    finishEntry(roll.entry, roll.victim, roll.sequence);
+    stopRollTimerIfIdle();
   }
 
-  function startRoll(victim) {
-    rolling = true;
-    elements.button.disabled = true;
-    elements.button.textContent = "고르는 중…";
-    elements.reward.textContent = "";
+  function tickRoll(roll, now) {
+    const elapsed = now - roll.startedAt;
 
-    const startedAt = performance.now();
-    const fixed = [false, false, false, false];
-    let timer = null;
-
-    const renderAllFinal = () => {
-      renderVictim(victim);
-      fixed.fill(true);
-    };
-
-    const onVisibility = () => {
-      if (!document.hidden) {
-        tick();
+    if (!roll.fixed[0]) {
+      if (elapsed >= 600) {
+        roll.entry.location.textContent = locationLabel(roll.victim.locationCode);
+        roll.fixed[0] = true;
+      } else {
+        roll.entry.location.textContent = randomLocationText();
       }
-    };
-
-    const tick = () => {
-      const elapsed = performance.now() - startedAt;
-
-      if (!fixed[0]) {
-        if (elapsed >= 600) {
-          elements.location.textContent = locationLabel(victim.locationCode);
-          fixed[0] = true;
-        } else {
-          elements.location.textContent = randomLocationText();
-        }
+    }
+    if (!roll.fixed[1]) {
+      if (elapsed >= 800) {
+        roll.entry.age.textContent = ageLabel(roll.victim.age);
+        roll.fixed[1] = true;
+      } else {
+        roll.entry.age.textContent = ageLabel(Math.floor(rng() * 101));
       }
-      if (!fixed[1]) {
-        if (elapsed >= 800) {
-          elements.age.textContent = ageLabel(victim.age);
-          fixed[1] = true;
-        } else {
-          elements.age.textContent = ageLabel(Math.floor(rng() * 101));
-        }
+    }
+    if (!roll.fixed[2]) {
+      if (elapsed >= 1_000) {
+        roll.entry.sex.textContent = sexLabel(roll.victim.sex);
+        roll.fixed[2] = true;
+      } else {
+        roll.entry.sex.textContent = rng() < 0.5 ? "남성" : "여성";
       }
-      if (!fixed[2]) {
-        if (elapsed >= 1_000) {
-          elements.sex.textContent = sexLabel(victim.sex);
-          fixed[2] = true;
-        } else {
-          elements.sex.textContent = rng() < 0.5 ? "남성" : "여성";
-        }
-      }
-      if (!fixed[3]) {
-        if (elapsed >= 1_200) {
-          elements.cause.textContent = causeLabel(victim);
-          fixed[3] = true;
-        } else {
-          elements.cause.textContent = randomCauseText();
-        }
-      }
-
+    }
+    if (!roll.fixed[3]) {
       if (elapsed >= 1_200) {
-        finishRoll(victim, timer, onVisibility);
+        roll.entry.cause.textContent = causeLabel(roll.victim);
+        roll.fixed[3] = true;
+      } else {
+        roll.entry.cause.textContent = randomCauseText();
       }
-    };
+    }
 
-    document.addEventListener("visibilitychange", onVisibility);
+    if (elapsed >= 1_200) {
+      finishRoll(roll);
+    }
+  }
+
+  function tickActiveRolls() {
+    const now = performance.now();
+    for (const roll of Array.from(activeRolls)) {
+      tickRoll(roll, now);
+    }
+  }
+
+  function ensureRollTimer() {
+    if (rollTimer === null) {
+      rollTimer = window.setInterval(tickActiveRolls, 70);
+    }
+  }
+
+  function startRoll(victim, sequence) {
+    const entry = createLogEntry(sequence);
 
     if (reducedMotion.matches) {
-      elements.location.textContent = "결정 중…";
-      elements.age.textContent = "결정 중…";
-      elements.sex.textContent = "결정 중…";
-      elements.cause.textContent = "결정 중…";
-      window.setTimeout(() => {
-        renderAllFinal();
-        finishRoll(victim, null, onVisibility);
-      }, 250);
+      entry.location.textContent = "결정 중…";
+      entry.age.textContent = "결정 중…";
+      entry.sex.textContent = "결정 중…";
+      entry.cause.textContent = "결정 중…";
+      window.setTimeout(() => finishEntry(entry, victim, sequence), 250);
       return;
     }
 
-    tick();
-    timer = window.setInterval(tick, 70);
+    const roll = {
+      entry,
+      victim,
+      sequence,
+      startedAt: performance.now(),
+      fixed: [false, false, false, false],
+    };
+    activeRolls.add(roll);
+    tickRoll(roll, roll.startedAt);
+    ensureRollTimer();
+  }
+
+  function onVisibility() {
+    if (!document.hidden) {
+      tickActiveRolls();
+    }
   }
 
   function onPress() {
-    if (rolling || state.presses >= MAX_PRESSES) {
+    if (state.presses >= MAX_PRESSES) {
+      elements.button.disabled = true;
       return;
     }
 
@@ -541,24 +655,27 @@ function initializeGame() {
       state = commitPress(state, victim);
       persist();
       renderPopulation();
-      startRoll(victim);
+      renderMoney();
+      startRoll(victim, state.presses);
     } catch {
       elements.warning.textContent = "추첨 실패. 다시 누름.";
-      rolling = false;
-      elements.button.disabled = false;
-      elements.button.textContent = state.presses > 0 ? "또 누른다" : "누른다";
     }
   }
 
   renderPopulation();
   renderMoney();
+  playSubtitle();
+
   if (state.lastVictim) {
-    renderVictim(state.lastVictim);
-    elements.reward.textContent = "지난 기록.";
-    elements.button.textContent = "또 누른다";
+    const restoredEntry = createLogEntry(state.presses);
+    finishEntry(restoredEntry, state.lastVictim, state.presses, {
+      announceResult: false,
+      impactResult: false,
+    });
   }
 
   elements.button.addEventListener("click", onPress);
+  document.addEventListener("visibilitychange", onVisibility);
   window.setInterval(renderPopulation, 500);
 }
 
