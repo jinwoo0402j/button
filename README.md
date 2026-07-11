@@ -1,0 +1,70 @@
+# 버튼
+
+버튼 누른다. 돈 받는다. 세상 사람 한 명 줄어든다.
+
+조건을 숨기지 않는 한국어 단일 화면 버튼 게임 프로토타입이다. 짧은 단어와 단문, 설명을 덜어 낸 직접적인 표현을 이 프로젝트의 **케이브맨 문체**로 사용한다.
+
+> 이 게임은 비그래픽 가상 실험이다. 실제 사람, 실제 죽음, 실제 지급과 관계없다. 표시 인구와 모든 추첨 확률은 추정치다. 실제 이름·도시·개인정보를 생성하거나 사용하지 않는다.
+
+- 저장소: <https://github.com/jinwoo0402j/button>
+- 라이브 데모: `LIVE_DEMO_URL`
+
+## 게임
+
+빨간 버튼을 한 번 누르면 가상의 희생자 프로필이 추첨된다. 국가/지역, 나이, 성별, 사인이 차례로 멈추고 브라우저 안의 돈이 100만 원 늘어난다. 사인 `버튼`은 현실 통계가 아닌 별도 1% 게임 확률이다.
+
+표시 인구는 다음 브라우저별 추정식으로 계산한다.
+
+```text
+8,199,768,010
++ floor((현재 UTC - 2026-07-11T12:58:15Z) / 1초) × 2
+- 이 브라우저의 누적 클릭 수
+```
+
+기준 인구는 **8,199,768,010명**, 기준 시각은 **2026-07-11T12:58:15Z**다. 초당 2명 순증가를 가정하며, 다른 방문자의 클릭은 반영하지 않는다.
+
+## 로컬 실행과 테스트
+
+빌드 단계와 설치할 런타임 의존성이 없는 정적 사이트다.
+
+```bash
+python -m http.server 8000
+```
+
+브라우저에서 <http://localhost:8000>을 연다.
+
+```bash
+node --test
+```
+
+테스트는 인구 계산, 상태 저장과 복원, 가중 추첨 경계, 클릭 중복 방지와 통계 표본을 검사한다.
+
+## 데이터와 출처
+
+### 인구 분포
+
+[UN World Population Prospects 2024](https://www.un.org/development/desa/pd/content/world-population-prospects-2024-dataset)의 **2026 Medium** 자료를 국가/지역, 단일 연령 `0~99·100+`, 남성·여성 가중치로 번역·정규화해 정적 파일에 포함한다. 원자료의 라이선스는 [Creative Commons Attribution 3.0 IGO (CC BY 3.0 IGO)](https://creativecommons.org/licenses/by/3.0/igo/)다.
+
+### 사인 분포
+
+[WHO의 2021년 세계 상위 10개 사망원인 공개 집계](https://www.who.int/news-room/fact-sheets/detail/the-top-10-causes-of-death)만 `상위 10개 + 기타`의 독립 가중치로 사용한다. WHO 전체 원자료는 저장소에 포함하지 않는다. 자세한 재사용 조건은 [WHO data policy](https://www.who.int/about/policies/publishing/data-policy/terms-and-conditions)를 따른다.
+
+`사인: 버튼` 1%는 WHO 통계가 아닌 블랙코미디용 게임 규칙이다. 나머지 현실 사인 가중치는 99% 안에서 적용한다. 이 프로젝트는 UN 또는 WHO가 승인·후원하거나 제휴한 프로젝트가 아니다.
+
+## 상태와 개인정보
+
+게임 상태는 `jinwoo-button:v1` 키로 각 브라우저의 `localStorage`에만 저장된다. 누적 클릭 수로 돈을 다시 계산하고 마지막 가상 희생자 프로필을 복원한다. 저장소가 손상됐거나 차단되면 현재 탭의 메모리 상태로 대체한다.
+
+앱 전용 서버, 계정, 분석 도구, 추적 코드가 없다. 페이지를 받은 뒤 게임 데이터나 통계를 가져오기 위한 외부 런타임 API 요청도 없다. 상태는 방문자 사이에서 공유되지 않는다.
+
+## 구조와 배포
+
+- `index.html`: 단일 화면 마크업과 인라인 스타일
+- `game.js`: 추첨, 상태, 애니메이션, 접근성 동작
+- `stats.generated.js`: 브라우저에서 사용하는 생성된 압축 가중치
+- `scripts/build-stats.py`: 통계 데이터 생성·검증 도구
+- `tests/*.test.mjs`: Node 내장 테스트 러너 테스트
+
+Vercel에서 GitHub 저장소를 Import한 뒤 프로젝트 이름을 `button`, Framework Preset을 `Other`로 둔다. Build Command는 비워 두고 Root Directory와 Output Directory는 저장소 루트 `.`을 사용하며 Production Branch는 `main`으로 설정한다. 이후 `main` 푸시가 정적 사이트를 자동 배포한다.
+
+배포가 끝나면 이 문서의 `LIVE_DEMO_URL`을 실제 `.vercel.app` 주소로 교체한다.

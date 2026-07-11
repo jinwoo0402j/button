@@ -1,0 +1,11 @@
+{
+  "name": "button",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "stats:build": "python scripts/build-stats.py",
+    "stats:check": "python scripts/build-stats.py --check"
+  }
+}
