@@ -192,10 +192,58 @@
       }
 
       .subtitle.is-dissolving,
+      .ethics-prompt.is-dissolving,
       .celebration.is-dissolving,
       .log-entry.is-dissolving {
         animation: text-dissolve 620ms steps(8, end) forwards;
         pointer-events: none;
+      }
+
+      .ethics-prompt {
+        display: grid;
+        width: 100%;
+        justify-items: center;
+        row-gap: 0.7rem;
+      }
+
+      .ethics-reward {
+        margin: 0;
+        color: var(--foreground);
+        font-size: clamp(0.88rem, 2.7vw, 1.05rem);
+        letter-spacing: 0.04em;
+      }
+
+      .ethics-actions {
+        display: flex;
+        margin-top: 0.45rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.65rem 1rem;
+      }
+
+      .ethics-button {
+        min-width: 8rem;
+        padding: 0.55rem 0.7rem;
+        border: 0;
+        background: transparent;
+        color: var(--foreground);
+        cursor: pointer;
+        font-size: clamp(0.76rem, 2.3vw, 0.9rem);
+        letter-spacing: 0.05em;
+      }
+
+      .ethics-button:hover,
+      .ethics-button:focus-visible {
+        color: var(--green);
+      }
+
+      .ethics-button:focus-visible {
+        outline: 1px dotted currentColor;
+        outline-offset: 0.25rem;
+      }
+
+      .ethics-prompt.is-refused .subtitle {
+        min-height: 3rem;
       }
 
       .money-display {
@@ -208,6 +256,12 @@
         color: var(--muted);
         font-size: clamp(0.72rem, 2vw, 0.86rem);
         letter-spacing: 0.08em;
+      }
+
+      .target-label {
+        color: var(--muted);
+        font-size: clamp(0.62rem, 1.8vw, 0.72rem);
+        letter-spacing: 0.04em;
       }
 
       .money-display__value {
@@ -232,6 +286,51 @@
         color: var(--muted);
         font-size: clamp(0.62rem, 1.8vw, 0.72rem);
         letter-spacing: 0.08em;
+      }
+
+      .processing-control {
+        display: grid;
+        min-height: 1.55em;
+        place-items: center;
+      }
+
+      .processing-control > * {
+        grid-area: 1 / 1;
+      }
+
+      .processing-upgrade {
+        padding: 0.2rem 0.3rem;
+        border: 0;
+        background: transparent;
+        color: var(--green);
+        cursor: pointer;
+        font-size: clamp(0.66rem, 1.9vw, 0.78rem);
+        letter-spacing: 0.05em;
+        text-shadow: 0 0 0.45rem rgba(84, 223, 121, 0.28);
+      }
+
+      .processing-upgrade:hover:not(:disabled),
+      .processing-upgrade:focus-visible {
+        color: var(--green-bright);
+      }
+
+      .processing-upgrade:focus-visible {
+        outline: 1px dotted currentColor;
+        outline-offset: 0.25rem;
+      }
+
+      .processing-upgrade:disabled {
+        color: var(--muted);
+        cursor: not-allowed;
+        opacity: 0.6;
+        text-shadow: none;
+      }
+
+      .processing-status {
+        color: var(--green);
+        font-size: clamp(0.66rem, 1.9vw, 0.78rem);
+        letter-spacing: 0.08em;
+        text-shadow: 0 0 0.45rem rgba(84, 223, 121, 0.24);
       }
 
       body.has-crt-color .status__value,
@@ -293,19 +392,6 @@
         font-size: clamp(0.72rem, 2vw, 0.88rem);
       }
 
-      .subtitle__line {
-        display: block;
-        min-height: 1.6em;
-      }
-
-      .subtitle__line.is-typing::after {
-        content: "▮";
-        display: inline-block;
-        margin-left: 0.12em;
-        color: var(--amber);
-        animation: cursor-blink 560ms steps(1, end) infinite;
-      }
-
       .button {
         position: fixed;
         inset: auto auto max(1rem, env(safe-area-inset-bottom)) 50%;
@@ -335,12 +421,12 @@
         animation: button-press 80ms steps(2, end);
       }
 
-      .button::before {
+      .button:not([hidden])::before {
         margin-right: 0.42em;
         content: "[";
       }
 
-      .button::after {
+      .button:not([hidden])::after {
         margin-left: 0.3em;
         content: "]";
       }
@@ -432,7 +518,7 @@
         display: grid;
         min-width: 0;
         column-gap: clamp(0.7rem, 2vw, 1.6rem);
-        grid-template-columns: 1.35fr 0.75fr 0.75fr 1.35fr;
+        grid-template-columns: 1.15fr 0.8fr 1.45fr 0.8fr 1.65fr;
       }
 
       .log-field {
@@ -457,6 +543,29 @@
         line-height: 1.5;
         overflow-wrap: anywhere;
         text-shadow: 0 0 0.4rem rgba(242, 245, 239, 0.16);
+      }
+
+      .log-field__value[data-emoji]::before {
+        display: inline-block;
+        min-width: 2.75em;
+        margin-right: 0.32em;
+        content: "[" attr(data-emoji) "]";
+        filter:
+          saturate(0.68)
+          contrast(1.15)
+          brightness(1)
+          drop-shadow(0 0 0.18rem currentColor);
+        font-family:
+          "Apple Color Emoji",
+          "Segoe UI Emoji",
+          "Noto Color Emoji",
+          sans-serif;
+        font-size: 1.08em;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 1;
+        white-space: nowrap;
+        vertical-align: -0.06em;
       }
 
       .log-entry:not(.is-complete) .log-field__value {
@@ -564,11 +673,6 @@
         }
       }
 
-      @keyframes cursor-blink {
-        0%, 48% { opacity: 1; }
-        49%, 100% { opacity: 0; }
-      }
-
       @keyframes log-enter {
         from {
           opacity: 0;
@@ -655,6 +759,11 @@
         .log-field:nth-child(odd) {
           padding-right: 0.35rem;
         }
+
+        .log-field:last-child {
+          grid-column: 1 / -1;
+          padding-right: 0;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -687,11 +796,15 @@
         body::before {
           display: none;
         }
+
+        .log-field__value[data-emoji]::before {
+          filter: none;
+        }
       }
     </style>
   </head>
   <body>
-    <header class="status-bar" aria-label="게임 상태">
+    <header id="status-bar" class="status-bar" aria-label="게임 상태" hidden>
       <div class="status">
         <span class="status__label">지구 사람</span>
         <strong id="population" class="status__value">8,199,768,010</strong>
@@ -706,19 +819,41 @@
     <main class="game">
       <div class="game__content">
         <div id="focus-stage" class="focus-stage">
-          <h1
-            id="intro"
-            class="subtitle"
-            aria-label="버튼 누른다. 너 빼고 한 명 죽는다. 너는 100만원 받는다."
+          <section
+            id="ethics-prompt"
+            class="ethics-prompt"
+            aria-labelledby="ethics-question"
           >
-            <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
-            <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
-            <span class="subtitle__line" data-subtitle-line aria-hidden="true"></span>
-          </h1>
+            <h1
+              id="ethics-question"
+              class="subtitle"
+              aria-live="polite"
+              tabindex="-1"
+            >대상: 전 세계 사람 중 무작위 1명. 한 명 죽는다.</h1>
+            <p id="ethics-reward" class="ethics-reward">너는 100만원 받는다.</p>
+            <div id="ethics-actions" class="ethics-actions">
+              <button id="ethics-accept" class="ethics-button" type="button">[ 받아들인다 ]</button>
+              <button id="ethics-reject" class="ethics-button" type="button">[ 거부한다 ]</button>
+            </div>
+          </section>
 
           <section id="money-display" class="money-display" aria-label="내 돈" hidden>
+            <span id="target-label" class="target-label" hidden></span>
             <span class="money-display__label" aria-hidden="true">내 돈</span>
             <strong id="money" class="money-display__value">₩0</strong>
+            <div class="processing-control">
+              <button
+                id="processing-upgrade"
+                class="processing-upgrade"
+                type="button"
+                disabled
+              >[ 처리 최적화 · 500만원 ]</button>
+              <span
+                id="processing-status"
+                class="processing-status"
+                hidden
+              >처리 효율 ×2</span>
+            </div>
             <span id="trade-record" class="money-display__record" hidden></span>
           </section>
 
@@ -735,14 +870,16 @@
         </div>
 
         <ol id="roulette-log" class="roulette-log" aria-hidden="true"></ol>
-        <p id="storage-warning" class="warning" role="status"></p>
-        <span id="button-wave" class="button-wave" aria-hidden="true"></span>
+        <p id="storage-warning" class="warning" role="status" hidden></p>
+        <span id="button-wave" class="button-wave" aria-hidden="true" hidden></span>
         <button
           id="press-button"
           class="button"
           aria-keyshortcuts="Space"
           aria-label="버튼"
+          aria-hidden="true"
           type="button"
+          hidden
         >버튼</button>
         <div
           id="announcements"
@@ -750,6 +887,7 @@
           role="log"
           aria-live="polite"
           aria-relevant="additions"
+          hidden
         ></div>
       </div>
     </main>
@@ -760,6 +898,10 @@
           <div class="log-field">
             <span class="log-field__label">국가/지역</span>
             <strong class="log-field__value" data-log-location>—</strong>
+          </div>
+          <div class="log-field">
+            <span class="log-field__label">이름</span>
+            <strong class="log-field__value" data-log-name>—</strong>
           </div>
           <div class="log-field">
             <span class="log-field__label">나이</span>

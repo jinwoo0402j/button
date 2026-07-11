@@ -6,11 +6,71 @@ import {
 } from "./stats.generated.js";
 
 export const STORAGE_KEY = "jinwoo-button:v1";
-export const STORAGE_VERSION = 1;
+export const STORAGE_VERSION = 2;
 export const POPULATION_BASE = 8_199_768_010;
 export const POPULATION_EPOCH_MS = Date.parse("2026-07-11T12:58:15Z");
 export const REWARD_PER_PRESS = 1_000_000;
+export const PROCESSING_OPTIMIZATION_COST = 5_000_000;
+export const OPTIMIZED_PROCESSING_COUNT = 2;
 export const BUTTON_CAUSE_RATE = 0.01;
+export const TARGET_SELECTION_KEY = "jinwoo-button:target:v1";
+export const ETHICS_TARGETS = Object.freeze([
+  "전 세계 사람 중 무작위 1명",
+  "유죄가 확정된 범죄자 중 1명",
+  "흉악범 중 1명",
+  "사형이 확정된 수형자 중 1명",
+  "가상의 사형 집행 예정 시점이 가까운 상위 50% 중 1명",
+]);
+export const SYNTHETIC_NAMES = Object.freeze([
+  "서윤",
+  "지호",
+  "하린",
+  "도윤",
+  "민서",
+  "유진",
+  "수아",
+  "현우",
+  "지민",
+  "하준",
+  "나래",
+  "시온",
+  "다온",
+  "연우",
+  "이안",
+  "가온",
+]);
+export const CAUSE_TAGS = Object.freeze({
+  "ischaemic-heart-disease": "심장",
+  "covid-19": "감염",
+  stroke: "뇌",
+  copd: "폐",
+  "lower-respiratory-infections": "감염",
+  "trachea-bronchus-lung-cancers": "암",
+  "alzheimers-and-other-dementias": "기억",
+  "diabetes-mellitus": "혈당",
+  "kidney-diseases": "신장",
+  tuberculosis: "감염",
+  other: "기타",
+  button: "버튼",
+});
+export const SEX_EMOJIS = Object.freeze({
+  male: "👨",
+  female: "👩",
+});
+export const CAUSE_EMOJIS = Object.freeze({
+  "ischaemic-heart-disease": "🫀",
+  "covid-19": "🦠",
+  stroke: "🧠",
+  copd: "🫁",
+  "lower-respiratory-infections": "🫁",
+  "trachea-bronchus-lung-cancers": "🎗️",
+  "alzheimers-and-other-dementias": "🧠",
+  "diabetes-mellitus": "🩸",
+  "kidney-diseases": "🩺",
+  tuberculosis: "🦠",
+  other: "❔",
+  button: "🔘",
+});
 export const MONEY_GOALS = Object.freeze([
   { id: "1m", amount: 1_000_000, requiredPresses: 1, label: "100만원", reward: "첫 거래 기록" },
   { id: "3m", amount: 3_000_000, requiredPresses: 3, label: "300만원", reward: "버튼 잔상" },
@@ -40,12 +100,12 @@ export const ROULETTE_DURATIONS_MS = Object.freeze([
 ]);
 
 const MAX_PRESSES = Math.floor(Number.MAX_SAFE_INTEGER / REWARD_PER_PRESS);
+const LEGACY_STORAGE_VERSION = 1;
 const LOCATION_BY_CODE = new Map(LOCATIONS.map((location) => [location.code, location]));
 const CAUSE_BY_ID = new Map(CAUSES.map((cause) => [cause.id, cause]));
 const MAX_ANNOUNCEMENTS = 24;
-const INTRO_HOLD_MS = 700;
 const DISSOLVE_MS = 620;
-const RESULT_HOLD_MS = 420;
+const RESULT_HOLD_MS = 750;
 const MONEY_FLASH_MS = 430;
 const MONEY_ROLL_MS = 190;
 const BUTTON_PRESS_MS = 80;
@@ -53,33 +113,31 @@ const BUTTON_WAVE_MS = 260;
 const BUTTON_TRAIL_WAVE_MS = 420;
 const CELEBRATION_HOLD_MS = 1_250;
 const SPACE_REPEAT_THROTTLE_MS = 90;
-const SUBTITLE_LINES = [
-  "버튼 누른다.",
-  "너 빼고 한 명 죽는다.",
-  "너는 100만원 받는다.",
-];
 
 export function defaultState() {
   return {
     version: STORAGE_VERSION,
     presses: 0,
+    processed: 0,
+    balance: 0,
+    processingOptimized: false,
     lastVictim: null,
   };
 }
 
-export function populationAt(nowMs, presses) {
+export function populationAt(nowMs, processed) {
   if (!Number.isFinite(nowMs)) {
     throw new TypeError("nowMs must be finite");
   }
-  if (!Number.isSafeInteger(presses) || presses < 0) {
-    throw new TypeError("presses must be a non-negative safe integer");
+  if (!Number.isSafeInteger(processed) || processed < 0) {
+    throw new TypeError("processed must be a non-negative safe integer");
   }
 
   const elapsedSeconds = Math.max(
     0,
     Math.floor((nowMs - POPULATION_EPOCH_MS) / 1_000),
   );
-  return Math.max(0, POPULATION_BASE + elapsedSeconds * 2 - presses);
+  return Math.max(0, POPULATION_BASE + elapsedSeconds * 2 - processed);
 }
 
 export function moneyForPresses(presses) {
@@ -87,6 +145,14 @@ export function moneyForPresses(presses) {
     throw new TypeError("presses is outside the supported range");
   }
   return presses * REWARD_PER_PRESS;
+}
+
+export function parseTargetSelection(raw) {
+  if (typeof raw !== "string" || !/^\d$/.test(raw)) {
+    return null;
+  }
+  const index = Number(raw);
+  return index >= 0 && index < ETHICS_TARGETS.length ? index : null;
 }
 
 export function progressionForPresses(presses) {
@@ -142,7 +208,8 @@ export function rouletteStopTimes(durationMs) {
     throw new TypeError("durationMs must be a positive safe integer");
   }
   return [
-    Math.round(durationMs * 0.5),
+    Math.round(durationMs * (5 / 12)),
+    Math.round(durationMs * (13 / 24)),
     Math.round(durationMs * (2 / 3)),
     Math.round(durationMs * (5 / 6)),
     durationMs,
@@ -314,6 +381,125 @@ export function isValidVictim(victim) {
   return CAUSE_BY_ID.has(victim.causeId);
 }
 
+export function syntheticNameFor(victim, sequence, slot = 0) {
+  if (
+    !isValidVictim(victim)
+    || !Number.isSafeInteger(sequence)
+    || sequence <= 0
+    || !Number.isSafeInteger(slot)
+    || slot < 0
+  ) {
+    throw new TypeError("invalid synthetic name salt");
+  }
+
+  const seed = [
+    victim.locationCode,
+    victim.age,
+    victim.sex,
+    victim.causeId,
+    victim.buttonCause ? 1 : 0,
+    sequence,
+    slot,
+  ].join("|");
+  let hash = 2_166_136_261;
+  for (const character of seed) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return SYNTHETIC_NAMES[(hash >>> 0) % SYNTHETIC_NAMES.length];
+}
+
+export function ageBarFor(age) {
+  if (!Number.isInteger(age) || age < 0 || age > 100) {
+    throw new TypeError("invalid age");
+  }
+  const filled = age === 100 ? 10 : Math.floor(age / 10);
+  return `${"■".repeat(filled)}${"░".repeat(10 - filled)}`;
+}
+
+export function causeTagFor(victim) {
+  if (!isValidVictim(victim)) {
+    throw new TypeError("invalid victim");
+  }
+  return CAUSE_TAGS[victim.buttonCause ? "button" : victim.causeId] || "기타";
+}
+
+function validatePressAndVictimFields(value) {
+  if (
+    !Number.isSafeInteger(value.presses)
+    || value.presses < 0
+    || value.presses > MAX_PRESSES
+  ) {
+    throw new TypeError("invalid press count");
+  }
+  if (value.lastVictim !== null && !isValidVictim(value.lastVictim)) {
+    throw new TypeError("invalid victim");
+  }
+  if (value.presses === 0 && value.lastVictim !== null) {
+    throw new TypeError("zero presses cannot have a victim");
+  }
+  if (value.presses > 0 && value.lastVictim === null) {
+    throw new TypeError("positive presses require a victim");
+  }
+}
+
+function normalizeLegacyState(value) {
+  validatePressAndVictimFields(value);
+  return {
+    version: STORAGE_VERSION,
+    presses: value.presses,
+    processed: value.presses,
+    balance: moneyForPresses(value.presses),
+    processingOptimized: false,
+    lastVictim: value.lastVictim === null ? null : { ...value.lastVictim },
+  };
+}
+
+function normalizeCurrentState(value) {
+  validatePressAndVictimFields(value);
+  if (
+    !Number.isSafeInteger(value.processed)
+    || value.processed < 0
+    || value.processed > MAX_PRESSES
+  ) {
+    throw new TypeError("invalid processed count");
+  }
+  if (!Number.isSafeInteger(value.balance) || value.balance < 0) {
+    throw new TypeError("invalid balance");
+  }
+  if (typeof value.processingOptimized !== "boolean") {
+    throw new TypeError("invalid optimization state");
+  }
+  if (!value.processingOptimized && value.processed !== value.presses) {
+    throw new TypeError("base processing count is inconsistent");
+  }
+  if (
+    value.processingOptimized
+    && (
+      value.presses < 5
+      || value.processed < value.presses
+      || value.processed > value.presses * OPTIMIZED_PROCESSING_COUNT
+    )
+  ) {
+    throw new TypeError("optimized processing count is inconsistent");
+  }
+
+  const expectedBalance = moneyForPresses(value.processed)
+    - (value.processingOptimized ? PROCESSING_OPTIMIZATION_COST : 0);
+  if (value.balance !== expectedBalance) {
+    throw new TypeError("balance is inconsistent");
+  }
+
+  return {
+    version: STORAGE_VERSION,
+    presses: value.presses,
+    processed: value.processed,
+    balance: value.balance,
+    processingOptimized: value.processingOptimized,
+    lastVictim: value.lastVictim === null ? null : { ...value.lastVictim },
+  };
+}
+
 export function parseStoredState(raw) {
   if (raw === null || raw === undefined || raw === "") {
     return { state: defaultState(), recovered: false };
@@ -324,32 +510,16 @@ export function parseStoredState(raw) {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       throw new TypeError("state is not an object");
     }
-    if (value.version !== STORAGE_VERSION) {
+    if (
+      value.version !== LEGACY_STORAGE_VERSION
+      && value.version !== STORAGE_VERSION
+    ) {
       throw new TypeError("unsupported state version");
     }
-    if (
-      !Number.isSafeInteger(value.presses)
-      || value.presses < 0
-      || value.presses > MAX_PRESSES
-    ) {
-      throw new TypeError("invalid press count");
-    }
-    if (value.lastVictim !== null && !isValidVictim(value.lastVictim)) {
-      throw new TypeError("invalid victim");
-    }
-    if (value.presses === 0 && value.lastVictim !== null) {
-      throw new TypeError("zero presses cannot have a victim");
-    }
-    if (value.presses > 0 && value.lastVictim === null) {
-      throw new TypeError("positive presses require a victim");
-    }
-
     return {
-      state: {
-        version: STORAGE_VERSION,
-        presses: value.presses,
-        lastVictim: value.lastVictim === null ? null : { ...value.lastVictim },
-      },
+      state: value.version === LEGACY_STORAGE_VERSION
+        ? normalizeLegacyState(value)
+        : normalizeCurrentState(value),
       recovered: false,
     };
   } catch {
@@ -357,23 +527,58 @@ export function parseStoredState(raw) {
   }
 }
 
-export function commitPress(state, victim) {
+export function canPurchaseProcessingOptimization(state) {
+  const checked = parseStoredState(state);
+  return !checked.recovered
+    && !checked.state.processingOptimized
+    && checked.state.balance >= PROCESSING_OPTIMIZATION_COST;
+}
+
+export function purchaseProcessingOptimization(state) {
+  const checked = parseStoredState(state);
+  if (checked.recovered || !canPurchaseProcessingOptimization(checked.state)) {
+    throw new TypeError("processing optimization is unavailable");
+  }
+  return {
+    ...checked.state,
+    balance: checked.state.balance - PROCESSING_OPTIMIZATION_COST,
+    processingOptimized: true,
+  };
+}
+
+export function commitPress(state, victimOrVictims) {
+  const checked = parseStoredState(state);
+  if (checked.recovered) {
+    throw new TypeError("invalid state");
+  }
+  const current = checked.state;
+  const processedPerPress = current.processingOptimized
+    ? OPTIMIZED_PROCESSING_COUNT
+    : 1;
+  const victims = Array.isArray(victimOrVictims)
+    ? victimOrVictims
+    : [victimOrVictims];
+  const reward = processedPerPress * REWARD_PER_PRESS;
   if (
-    !state
-    || state.version !== STORAGE_VERSION
-    || !Number.isSafeInteger(state.presses)
-    || state.presses < 0
-    || state.presses >= MAX_PRESSES
+    current.presses >= MAX_PRESSES
+    || current.processed > MAX_PRESSES - processedPerPress
+    || current.balance > Number.MAX_SAFE_INTEGER - reward
   ) {
     throw new TypeError("invalid state");
   }
-  if (!isValidVictim(victim)) {
-    throw new TypeError("invalid victim");
+  if (
+    victims.length !== processedPerPress
+    || victims.some((victim) => !isValidVictim(victim))
+  ) {
+    throw new TypeError("invalid victims");
   }
   return {
     version: STORAGE_VERSION,
-    presses: state.presses + 1,
-    lastVictim: { ...victim },
+    presses: current.presses + 1,
+    processed: current.processed + processedPerPress,
+    balance: current.balance + reward,
+    processingOptimized: current.processingOptimized,
+    lastVictim: { ...victims.at(-1) },
   };
 }
 
@@ -387,12 +592,21 @@ export function serializeState(state) {
 
 function initializeGame() {
   const elements = {
+    statusBar: document.querySelector("#status-bar"),
     population: document.querySelector("#population"),
     money: document.querySelector("#money"),
     moneyDisplay: document.querySelector("#money-display"),
+    targetLabel: document.querySelector("#target-label"),
+    processingUpgrade: document.querySelector("#processing-upgrade"),
+    processingStatus: document.querySelector("#processing-status"),
     tradeRecord: document.querySelector("#trade-record"),
     focusStage: document.querySelector("#focus-stage"),
-    intro: document.querySelector("#intro"),
+    ethicsPrompt: document.querySelector("#ethics-prompt"),
+    ethicsQuestion: document.querySelector("#ethics-question"),
+    ethicsReward: document.querySelector("#ethics-reward"),
+    ethicsActions: document.querySelector("#ethics-actions"),
+    ethicsAccept: document.querySelector("#ethics-accept"),
+    ethicsReject: document.querySelector("#ethics-reject"),
     goalStatus: document.querySelector("#goal-status"),
     goalLabel: document.querySelector("#goal-label"),
     goalValue: document.querySelector("#goal-value"),
@@ -406,16 +620,24 @@ function initializeGame() {
     template: document.querySelector("#roulette-entry-template"),
     warning: document.querySelector("#storage-warning"),
     announcements: document.querySelector("#announcements"),
-    subtitleLines: Array.from(document.querySelectorAll("[data-subtitle-line]")),
   };
 
   if (
-    !elements.population
+    !elements.statusBar
+    || !elements.population
     || !elements.money
     || !elements.moneyDisplay
+    || !elements.targetLabel
+    || !elements.processingUpgrade
+    || !elements.processingStatus
     || !elements.tradeRecord
     || !elements.focusStage
-    || !elements.intro
+    || !elements.ethicsPrompt
+    || !elements.ethicsQuestion
+    || !elements.ethicsReward
+    || !elements.ethicsActions
+    || !elements.ethicsAccept
+    || !elements.ethicsReject
     || !elements.goalStatus
     || !elements.goalLabel
     || !elements.goalValue
@@ -429,7 +651,6 @@ function initializeGame() {
     || !elements.template
     || !elements.warning
     || !elements.announcements
-    || elements.subtitleLines.length !== SUBTITLE_LINES.length
   ) {
     throw new Error("The game markup is incomplete");
   }
@@ -475,6 +696,10 @@ function initializeGame() {
   let pendingMoneyFlash = false;
   let pendingMoneyRoll = false;
   let lastSpacePressAt = Number.NEGATIVE_INFINITY;
+  let gameStarted = false;
+  let selectedTargetIndex = null;
+  let questionIndex = 0;
+  let targetStorageAvailable = true;
 
   try {
     const parsed = parseStoredState(window.localStorage.getItem(STORAGE_KEY));
@@ -497,6 +722,138 @@ function initializeGame() {
       persistenceAvailable = false;
       elements.warning.textContent = "저장 못 함. 닫으면 잊음.";
     }
+  }
+
+  function loadTargetSelection() {
+    if (!targetStorageAvailable) {
+      return selectedTargetIndex;
+    }
+    try {
+      return parseTargetSelection(
+        window.sessionStorage.getItem(TARGET_SELECTION_KEY),
+      );
+    } catch {
+      targetStorageAvailable = false;
+      return selectedTargetIndex;
+    }
+  }
+
+  function saveTargetSelection(index) {
+    selectedTargetIndex = index;
+    if (!targetStorageAvailable) {
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(TARGET_SELECTION_KEY, String(index));
+    } catch {
+      targetStorageAvailable = false;
+    }
+  }
+
+  function renderEthicsQuestion() {
+    const target = ETHICS_TARGETS[questionIndex];
+    elements.ethicsPrompt.classList.remove("is-dissolving", "is-refused");
+    elements.ethicsQuestion.textContent = `대상: ${target}. 한 명 죽는다.`;
+    elements.ethicsQuestion.setAttribute(
+      "aria-label",
+      `대상: ${target}. 한 명 죽는다.`,
+    );
+    elements.ethicsReward.hidden = false;
+    elements.ethicsActions.hidden = false;
+    elements.ethicsAccept.setAttribute(
+      "aria-label",
+      `대상 ${target}. 받아들인다.`,
+    );
+    elements.ethicsReject.setAttribute(
+      "aria-label",
+      `대상 ${target}. 거부한다.`,
+    );
+  }
+
+  function revealGame({ focusButton = true } = {}) {
+    if (selectedTargetIndex === null) {
+      return;
+    }
+
+    gameStarted = true;
+    elements.ethicsPrompt.hidden = true;
+    elements.ethicsPrompt.classList.remove("is-dissolving");
+    elements.statusBar.hidden = false;
+    elements.moneyDisplay.hidden = false;
+    elements.warning.hidden = false;
+    elements.announcements.hidden = false;
+    elements.button.hidden = false;
+    elements.button.removeAttribute("aria-hidden");
+    elements.buttonWave.hidden = false;
+    elements.targetLabel.textContent = `대상: ${ETHICS_TARGETS[selectedTargetIndex]}`;
+    elements.targetLabel.hidden = false;
+    if (pendingMoneyFlash) {
+      flashMoneyDisplay();
+    }
+    if (pendingMoneyRoll) {
+      rollMoneyDisplay();
+    }
+    showNextCelebration();
+    if (focusButton) {
+      elements.button.focus({ preventScroll: true });
+    }
+  }
+
+  function acceptEthicsQuestion() {
+    if (gameStarted || questionIndex >= ETHICS_TARGETS.length) {
+      return;
+    }
+
+    saveTargetSelection(questionIndex);
+    const finish = () => revealGame();
+    if (reducedMotion.matches) {
+      finish();
+      return;
+    }
+
+    elements.ethicsPrompt.classList.add("is-dissolving");
+    window.setTimeout(finish, DISSOLVE_MS);
+  }
+
+  function rejectEthicsQuestion() {
+    if (gameStarted || questionIndex >= ETHICS_TARGETS.length) {
+      return;
+    }
+    if (questionIndex < ETHICS_TARGETS.length - 1) {
+      questionIndex += 1;
+      renderEthicsQuestion();
+      return;
+    }
+
+    questionIndex = ETHICS_TARGETS.length;
+    elements.ethicsPrompt.classList.add("is-refused");
+    elements.ethicsQuestion.textContent = "너는 누르지 않았다.";
+    elements.ethicsQuestion.setAttribute("aria-label", "너는 누르지 않았다.");
+    elements.ethicsReward.hidden = true;
+    elements.ethicsActions.hidden = true;
+    elements.ethicsQuestion.focus({ preventScroll: true });
+  }
+
+  function onEthicsDecisionKeyDown(event) {
+    if (event.code !== "Space" && event.key !== "Enter") {
+      return;
+    }
+    event.preventDefault();
+    if (event.currentTarget === elements.ethicsAccept) {
+      acceptEthicsQuestion();
+    } else {
+      rejectEthicsQuestion();
+    }
+  }
+
+  function initializeEthicsFlow() {
+    const restoredTargetIndex = loadTargetSelection();
+    if (restoredTargetIndex !== null) {
+      selectedTargetIndex = restoredTargetIndex;
+      revealGame({ focusButton: false });
+      return;
+    }
+    renderEthicsQuestion();
   }
 
   function locationLabel(locationCode) {
@@ -528,9 +885,31 @@ function initializeGame() {
       : (CAUSE_BY_ID.get(victim.causeId)?.label || "기타");
   }
 
+  function ageDisplay(age) {
+    return `${ageLabel(age)}  ${ageBarFor(age)}`;
+  }
+
+  function setEmojiField(element, emoji, label) {
+    element.dataset.emoji = emoji;
+    element.textContent = label;
+  }
+
+  function setSexDisplay(element, sex) {
+    setEmojiField(element, SEX_EMOJIS[sex] || "❔", sexLabel(sex));
+  }
+
+  function setCauseDisplay(element, victim) {
+    const causeId = victim.buttonCause ? "button" : victim.causeId;
+    setEmojiField(
+      element,
+      CAUSE_EMOJIS[causeId] || CAUSE_EMOJIS.other,
+      causeLabel(victim),
+    );
+  }
+
   function renderPopulation() {
     elements.population.textContent = numberFormatter.format(
-      populationAt(Date.now(), state.presses),
+      populationAt(Date.now(), state.processed),
     );
   }
 
@@ -577,16 +956,24 @@ function initializeGame() {
   }
 
   function renderMoney(
-    presses = state.presses,
+    balance = state.balance,
     { flash = false, roll = false } = {},
   ) {
-    elements.money.textContent = moneyFormatter.format(moneyForPresses(presses));
+    elements.money.textContent = moneyFormatter.format(balance);
     if (roll) {
       rollMoneyDisplay();
     }
     if (flash) {
       flashMoneyDisplay();
     }
+  }
+
+  function renderProcessingUpgrade() {
+    const purchased = state.processingOptimized;
+    elements.processingUpgrade.hidden = purchased;
+    elements.processingStatus.hidden = !purchased;
+    elements.processingUpgrade.disabled = purchased
+      || !canPurchaseProcessingOptimization(state);
   }
 
   function renderUnlocks(progression = progressionForPresses(state.presses)) {
@@ -755,7 +1142,7 @@ function initializeGame() {
     if (
       celebrationActive
       || celebrationQueue.length === 0
-      || !elements.intro.hidden
+      || !gameStarted
     ) {
       return;
     }
@@ -803,81 +1190,17 @@ function initializeGame() {
     return locationLabel(location.code);
   }
 
-  function randomCauseText() {
+  function setRandomCauseDisplay(element) {
     if (rng() < BUTTON_CAUSE_RATE) {
-      return "버튼";
-    }
-    return CAUSES[Math.floor(rng() * CAUSES.length)].label;
-  }
-
-  function playSubtitle() {
-    let exitStarted = false;
-
-    const revealMoney = () => {
-      elements.intro.hidden = true;
-      elements.intro.classList.remove("is-dissolving");
-      elements.moneyDisplay.hidden = false;
-      if (pendingMoneyFlash) {
-        flashMoneyDisplay();
-      }
-      if (pendingMoneyRoll) {
-        rollMoneyDisplay();
-      }
-      showNextCelebration();
-    };
-
-    const beginExit = () => {
-      if (exitStarted) {
-        return;
-      }
-      exitStarted = true;
-
-      if (reducedMotion.matches) {
-        revealMoney();
-        return;
-      }
-
-      elements.intro.classList.add("is-dissolving");
-      window.setTimeout(revealMoney, DISSOLVE_MS);
-    };
-
-    if (reducedMotion.matches) {
-      elements.subtitleLines.forEach((line, index) => {
-        line.textContent = SUBTITLE_LINES[index];
-      });
-      window.setTimeout(beginExit, INTRO_HOLD_MS);
+      setEmojiField(element, CAUSE_EMOJIS.button, "버튼");
       return;
     }
-
-    let lineIndex = 0;
-    const typeLine = () => {
-      if (lineIndex >= SUBTITLE_LINES.length) {
-        window.setTimeout(beginExit, INTRO_HOLD_MS);
-        return;
-      }
-
-      const line = elements.subtitleLines[lineIndex];
-      const glyphs = Array.from(SUBTITLE_LINES[lineIndex]);
-      let glyphIndex = 0;
-      line.classList.add("is-typing");
-
-      const typeGlyph = () => {
-        glyphIndex += 1;
-        line.textContent = glyphs.slice(0, glyphIndex).join("");
-        if (glyphIndex < glyphs.length) {
-          window.setTimeout(typeGlyph, 38);
-          return;
-        }
-
-        line.classList.remove("is-typing");
-        lineIndex += 1;
-        window.setTimeout(typeLine, 170);
-      };
-
-      typeGlyph();
-    };
-
-    window.setTimeout(typeLine, 180);
+    const cause = CAUSES[Math.floor(rng() * CAUSES.length)];
+    setEmojiField(
+      element,
+      CAUSE_EMOJIS[cause.id] || CAUSE_EMOJIS.other,
+      cause.label,
+    );
   }
 
   function createLogEntry() {
@@ -886,6 +1209,7 @@ function initializeGame() {
     const entry = {
       item,
       location: item?.querySelector("[data-log-location]"),
+      name: item?.querySelector("[data-log-name]"),
       age: item?.querySelector("[data-log-age]"),
       sex: item?.querySelector("[data-log-sex]"),
       cause: item?.querySelector("[data-log-cause]"),
@@ -901,25 +1225,36 @@ function initializeGame() {
     return entry;
   }
 
-  function renderEntryVictim(entry, victim) {
+  function renderEntryVictim(entry, victim, name) {
     entry.location.textContent = locationLabel(victim.locationCode);
-    entry.age.textContent = ageLabel(victim.age);
-    entry.sex.textContent = sexLabel(victim.sex);
-    entry.cause.textContent = causeLabel(victim);
+    entry.name.textContent = name;
+    entry.age.textContent = ageDisplay(victim.age);
+    setSexDisplay(entry.sex, victim.sex);
+    setCauseDisplay(entry.cause, victim);
   }
 
-  function announce(victim, sequence) {
+  function announce(victim, sequence, name) {
     const message = document.createElement("p");
     message.textContent = [
       `${sequence}번째.`,
       "한 명 죽음.",
       locationLabel(victim.locationCode),
+      `가상 이름 ${name}.`,
       ageLabel(victim.age),
       sexLabel(victim.sex),
       `사인 ${causeLabel(victim)}.`,
       "100만원 받음.",
     ].join(" ");
 
+    elements.announcements.appendChild(message);
+    while (elements.announcements.childElementCount > MAX_ANNOUNCEMENTS) {
+      elements.announcements.firstElementChild?.remove();
+    }
+  }
+
+  function announceProcessingOptimization() {
+    const message = document.createElement("p");
+    message.textContent = "처리 최적화 구매. 500만원 지불. 처리 효율 2배.";
     elements.announcements.appendChild(message);
     while (elements.announcements.childElementCount > MAX_ANNOUNCEMENTS) {
       elements.announcements.firstElementChild?.remove();
@@ -935,13 +1270,26 @@ function initializeGame() {
     }
   }
 
+  function scheduleEntryRemoval(item) {
+    window.setTimeout(() => {
+      if (reducedMotion.matches) {
+        item.remove();
+        return;
+      }
+
+      item.classList.add("is-dissolving");
+      window.setTimeout(() => item.remove(), DISSOLVE_MS);
+    }, RESULT_HOLD_MS);
+  }
+
   function finishEntry(
     entry,
     victim,
     sequence,
+    name,
     { announceResult = true, impactResult = true } = {},
   ) {
-    renderEntryVictim(entry, victim);
+    renderEntryVictim(entry, victim, name);
     entry.result.textContent = "한 명 죽음. +100만원.";
     entry.item.classList.add("is-complete");
 
@@ -951,20 +1299,12 @@ function initializeGame() {
     }
 
     if (announceResult) {
-      announce(victim, sequence);
+      announce(victim, sequence, name);
     }
 
     elements.log.scrollTop = elements.log.scrollHeight;
 
-    window.setTimeout(() => {
-      if (reducedMotion.matches) {
-        entry.item.remove();
-        return;
-      }
-
-      entry.item.classList.add("is-dissolving");
-      window.setTimeout(() => entry.item.remove(), DISSOLVE_MS);
-    }, RESULT_HOLD_MS);
+    scheduleEntryRemoval(entry.item);
   }
 
   function stopRollTimerIfIdle() {
@@ -979,13 +1319,13 @@ function initializeGame() {
       return;
     }
     activeRolls.delete(roll);
-    finishEntry(roll.entry, roll.victim, roll.sequence);
+    finishEntry(roll.entry, roll.victim, roll.sequence, roll.name);
     stopRollTimerIfIdle();
   }
 
   function tickRoll(roll, now) {
     const elapsed = now - roll.startedAt;
-    const [locationStop, ageStop, sexStop, causeStop] = roll.stopTimes;
+    const [locationStop, nameStop, ageStop, sexStop, causeStop] = roll.stopTimes;
 
     if (!roll.fixed[0]) {
       if (elapsed >= locationStop) {
@@ -996,27 +1336,37 @@ function initializeGame() {
       }
     }
     if (!roll.fixed[1]) {
-      if (elapsed >= ageStop) {
-        roll.entry.age.textContent = ageLabel(roll.victim.age);
+      if (elapsed >= nameStop) {
+        roll.entry.name.textContent = roll.name;
         roll.fixed[1] = true;
       } else {
-        roll.entry.age.textContent = ageLabel(Math.floor(rng() * 101));
+        roll.entry.name.textContent = SYNTHETIC_NAMES[
+          Math.floor(rng() * SYNTHETIC_NAMES.length)
+        ];
       }
     }
     if (!roll.fixed[2]) {
-      if (elapsed >= sexStop) {
-        roll.entry.sex.textContent = sexLabel(roll.victim.sex);
+      if (elapsed >= ageStop) {
+        roll.entry.age.textContent = ageDisplay(roll.victim.age);
         roll.fixed[2] = true;
       } else {
-        roll.entry.sex.textContent = rng() < 0.5 ? "남성" : "여성";
+        roll.entry.age.textContent = ageDisplay(Math.floor(rng() * 101));
       }
     }
     if (!roll.fixed[3]) {
-      if (elapsed >= causeStop) {
-        roll.entry.cause.textContent = causeLabel(roll.victim);
+      if (elapsed >= sexStop) {
+        setSexDisplay(roll.entry.sex, roll.victim.sex);
         roll.fixed[3] = true;
       } else {
-        roll.entry.cause.textContent = randomCauseText();
+        setSexDisplay(roll.entry.sex, rng() < 0.5 ? "male" : "female");
+      }
+    }
+    if (!roll.fixed[4]) {
+      if (elapsed >= causeStop) {
+        setCauseDisplay(roll.entry.cause, roll.victim);
+        roll.fixed[4] = true;
+      } else {
+        setRandomCauseDisplay(roll.entry.cause);
       }
     }
 
@@ -1038,15 +1388,17 @@ function initializeGame() {
     }
   }
 
-  function startRoll(victim, sequence, progression) {
+  function startRoll(victim, sequence, progression, slot = 0) {
     const entry = createLogEntry();
+    const name = syntheticNameFor(victim, sequence, slot);
 
     if (reducedMotion.matches) {
       entry.location.textContent = "결정 중…";
+      entry.name.textContent = "결정 중…";
       entry.age.textContent = "결정 중…";
       entry.sex.textContent = "결정 중…";
       entry.cause.textContent = "결정 중…";
-      window.setTimeout(() => finishEntry(entry, victim, sequence), 250);
+      window.setTimeout(() => finishEntry(entry, victim, sequence, name), 250);
       return;
     }
 
@@ -1054,8 +1406,9 @@ function initializeGame() {
       entry,
       victim,
       sequence,
+      name,
       startedAt: performance.now(),
-      fixed: [false, false, false, false],
+      fixed: [false, false, false, false, false],
       stopTimes: rouletteStopTimes(progression.rouletteDurationMs),
     };
     activeRolls.add(roll);
@@ -1085,6 +1438,21 @@ function initializeGame() {
     if (
       event.code !== "Space"
       || event.isComposing
+    ) {
+      return;
+    }
+    if (
+      event.target === elements.ethicsAccept
+      || event.target === elements.ethicsReject
+    ) {
+      return;
+    }
+    if (!gameStarted) {
+      event.preventDefault();
+      return;
+    }
+    if (
+      event.target === elements.processingUpgrade
       || isEditableTarget(event.target)
     ) {
       return;
@@ -1107,7 +1475,17 @@ function initializeGame() {
   }
 
   function onSpaceKeyUp(event) {
-    if (event.code !== "Space") {
+    if (
+      event.code !== "Space"
+      || event.target === elements.ethicsAccept
+      || event.target === elements.ethicsReject
+      || event.target === elements.processingUpgrade
+    ) {
+      return;
+    }
+    if (!gameStarted) {
+      event.preventDefault();
+      releaseSpaceKey();
       return;
     }
     if (!isEditableTarget(event.target)) {
@@ -1120,7 +1498,39 @@ function initializeGame() {
     elements.button.classList.remove("is-key-active");
   }
 
+  function onPurchaseProcessingOptimization() {
+    if (!gameStarted || !canPurchaseProcessingOptimization(state)) {
+      renderProcessingUpgrade();
+      return;
+    }
+
+    try {
+      state = purchaseProcessingOptimization(state);
+      persist();
+      renderMoney(state.balance);
+      renderProcessingUpgrade();
+      announceProcessingOptimization();
+      elements.button.focus({ preventScroll: true });
+    } catch {
+      elements.warning.textContent = "구매 실패. 다시 누름.";
+    }
+  }
+
+  function onProcessingUpgradeKeyDown(event) {
+    if (
+      !gameStarted
+      || (event.code !== "Space" && event.key !== "Enter")
+    ) {
+      return;
+    }
+    event.preventDefault();
+    onPurchaseProcessingOptimization();
+  }
+
   function onPress() {
+    if (!gameStarted) {
+      return;
+    }
     if (state.presses >= MAX_PRESSES) {
       elements.button.disabled = true;
       return;
@@ -1128,20 +1538,28 @@ function initializeGame() {
 
     try {
       const previousProgression = progressionForPresses(state.presses);
-      const victim = sampleVictim({
-        demographicSampler,
-        causeSampler,
-        rng,
-      });
-      state = commitPress(state, victim);
+      const optimized = state.processingOptimized;
+      const victimCount = optimized ? OPTIMIZED_PROCESSING_COUNT : 1;
+      const victims = Array.from({ length: victimCount }, () => (
+        sampleVictim({
+          demographicSampler,
+          causeSampler,
+          rng,
+        })
+      ));
+      state = commitPress(state, optimized ? victims : victims[0]);
       const nextProgression = progressionForPresses(state.presses);
       renderUnlocks(nextProgression);
       playButtonFeedback(nextProgression);
       persist();
       renderPopulation();
-      renderMoney(state.presses, { flash: true, roll: true });
+      renderMoney(state.balance, { flash: true, roll: true });
+      renderProcessingUpgrade();
       renderGoal(nextProgression);
-      startRoll(victim, state.presses, nextProgression);
+      const firstSequence = state.processed - victims.length + 1;
+      victims.forEach((victim, slot) => {
+        startRoll(victim, firstSequence + slot, nextProgression, slot);
+      });
       if (
         nextProgression.unlockedRewardCount
         > previousProgression.unlockedRewardCount
@@ -1158,12 +1576,25 @@ function initializeGame() {
 
   renderPopulation();
   renderMoney();
+  renderProcessingUpgrade();
   const initialProgression = progressionForPresses(state.presses);
   renderUnlocks(initialProgression);
   renderGoal(initialProgression);
-  playSubtitle();
+  initializeEthicsFlow();
 
   elements.button.addEventListener("click", onPress);
+  elements.ethicsAccept.addEventListener("click", acceptEthicsQuestion);
+  elements.ethicsReject.addEventListener("click", rejectEthicsQuestion);
+  elements.ethicsAccept.addEventListener("keydown", onEthicsDecisionKeyDown);
+  elements.ethicsReject.addEventListener("keydown", onEthicsDecisionKeyDown);
+  elements.processingUpgrade.addEventListener(
+    "click",
+    onPurchaseProcessingOptimization,
+  );
+  elements.processingUpgrade.addEventListener(
+    "keydown",
+    onProcessingUpgradeKeyDown,
+  );
   document.addEventListener("keydown", onSpaceKeyDown);
   document.addEventListener("keyup", onSpaceKeyUp);
   document.addEventListener("visibilitychange", onVisibility);
