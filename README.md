@@ -10,6 +10,7 @@
 - 라이브 데모: <https://button-iota-one.vercel.app>
 - 설계 원칙과 구현 우선순위: [`DESIGN.md`](DESIGN.md)
 - 첫 핵심 루프 구현 계획: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
+- 제품 제작 일정과 출시 예측: [`PRODUCTION_SCHEDULE.md`](PRODUCTION_SCHEDULE.md)
 
 ## 게임
 

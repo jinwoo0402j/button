@@ -6,6 +6,8 @@
 
 상위 설계 원칙은 [`DESIGN.md`](DESIGN.md)에 있다.
 
+날짜별 일정과 출시 예측은 [`PRODUCTION_SCHEDULE.md`](PRODUCTION_SCHEDULE.md)에 있다.
+
 ## 목표
 
 첫 루프가 끝났을 때 사용자가 다음을 동시에 이해해야 한다.
