@@ -6,9 +6,13 @@ import {
   CAUSE_TAGS,
   ETHICS_TARGETS,
   MONEY_GOALS,
+  MAX_PLAYER_NAME_LENGTH,
+  OPENING_BEATS,
   OPTIMIZED_PROCESSING_COUNT,
   POPULATION_BASE,
   POPULATION_EPOCH_MS,
+  PLAYER_PROFILES,
+  PLAYER_SETUP_KEY,
   PROCESSING_OPTIMIZATION_COST,
   ROULETTE_DURATIONS_MS,
   SEX_EMOJIS,
@@ -22,7 +26,10 @@ import {
   createWeightedSampler,
   decodeWeights,
   defaultState,
+  isDialogueBlipCharacter,
   moneyForPresses,
+  normalizePlayerName,
+  parsePlayerSetup,
   parseStoredState,
   parseTargetSelection,
   populationAt,
@@ -64,6 +71,102 @@ test("money is derived only from completed press records", () => {
   assert.equal(moneyForPresses(1), 1_000_000);
   assert.equal(moneyForPresses(12), 12_000_000);
   assert.throws(() => moneyForPresses(-1), /outside the supported range/);
+});
+
+test("the title leads into nineteen two-line beats in one demon-room scene", () => {
+  const expectedDialogueBeats = [
+    ["“아, {name} 씨.\n잊으셨군요?”", "[ 설명을 듣는다 ]", "demon"],
+    ["“그럼 제가 설명해 드릴게요.\n후훗.”", "[ 계속 듣는다 ]", "demon"],
+    ["“오늘도 변함없는 야근.\n밤 11시 30분에야 퇴근했지요.”", "[ 계속 듣는다 ]", "demon"],
+    ["“월세 55만 원짜리 방에\n몸을 누이면 하루가 끝났지요.”", "[ 계속 듣는다 ]", "demon"],
+    ["“당신에게 소리치는 상사,\n참 지긋지긋했겠지요.”", "[ 계속 듣는다 ]", "demon"],
+    ["“매일 야근을 강요한 회사도\n블랙 기업과 다름없었지요.”", "[ 계속 듣는다 ]", "demon"],
+    ["“나는 왜 살고 있는 걸까.”", "[ 계속 듣는다 ]", "demon"],
+    ["“어릴 때는 이런 삶을\n꿈꾸지 않았는데.”", "[ 계속 듣는다 ]", "demon"],
+    ["“살고 싶지 않다.\n그렇다고 죽고 싶은 것도 아니다.”", "[ 계속 듣는다 ]", "demon"],
+    ["“돈만… 돈만 있으면\n이 지긋지긋한 생활도 끝날 텐데.”", "[ 계속 듣는다 ]", "demon"],
+    ["“대학 학자금 대출도\n5,000만 원이나 남아 있었지요.”", "[ 계속 듣는다 ]", "demon"],
+    ["“당신에게는 돈이\n더 절실했겠지요.”", "[ 계속 듣는다 ]", "demon"],
+    ["“젠장… 아, 죽고 싶다.\n캔맥주나 마시고 잠들어야겠다.”", "[ 계속 듣는다 ]", "demon"],
+    ["“그렇게 하루를 끝내려던 그날,\n결국 과로로 쓰러졌어요.”", "[ 눈을 뜬다 ]", "room-hint"],
+    ["“다시 눈을 떴을 때…\n이미 이 방으로 끌려와 있었지요.”", "[ 방을 둘러본다 ]", "room-reveal"],
+    ["“이제 기억나시나요,\n{name} 씨?”", "[ 계속 듣는다 ]", "room-reveal"],
+    ["“버튼을 한 번 누를 때마다\n누군가 한 명이 죽어요.”", "[ 계속 듣는다 ]", "room-reveal"],
+    ["“당신은 100만 원을 받아요.\n누가 죽을지는 룰렛이 고르지요.”", "[ 계속 듣는다 ]", "room-reveal"],
+    ["“누를지는 오직 당신이 정하지요.\n자, 시작해 볼까요?”", "[ 시작한다 ]", "room-reveal"],
+  ];
+
+  assert.deepEqual(
+    OPENING_BEATS[0],
+    {
+      kind: "title",
+      voice: null,
+      visualState: "none",
+      title: "100만원 버튼",
+      copy: "",
+      action: "[ 누르기 ]",
+      actionLabel: "100만원 버튼을 누른다.",
+    },
+  );
+  assert.equal(OPENING_BEATS.length, 20);
+  assert.deepEqual(
+    OPENING_BEATS.slice(1).map(({ copy, action, visualState }) => (
+      [copy, action, visualState]
+    )),
+    expectedDialogueBeats,
+  );
+  assert.ok(OPENING_BEATS.slice(1).every((beat) => (
+    beat.kind === "dialogue"
+    && beat.voice === "elegant-demon"
+    && beat.title === "우아한 여성 악마"
+  )));
+
+  const segmenter = new Intl.Segmenter("ko", { granularity: "grapheme" });
+  const longestPlayerName = "가".repeat(MAX_PLAYER_NAME_LENGTH);
+  for (const beat of OPENING_BEATS.slice(1)) {
+    const lines = beat.copy.replaceAll("{name}", longestPlayerName).split("\n");
+    assert.ok(lines.length >= 1 && lines.length <= 2, beat.copy);
+    for (const line of lines) {
+      assert.ok([...segmenter.segment(line)].length <= 20, line);
+    }
+  }
+});
+
+test("dialogue blips are limited to completed letters and digits", () => {
+  for (const character of ["가", "A", "z", "7", "１"]) {
+    assert.equal(isDialogueBlipCharacter(character), true);
+  }
+  for (const character of ["", " ", "\n", ",", ".", "…", "🙂", "ab"]) {
+    assert.equal(isDialogueBlipCharacter(character), false);
+  }
+});
+
+test("player setup validates a Korean session identity without touching game state", () => {
+  assert.equal(PLAYER_SETUP_KEY, "jinwoo-button:player:v1");
+  assert.equal(MAX_PLAYER_NAME_LENGTH, 12);
+  assert.deepEqual(PLAYER_PROFILES, ["male", "female"]);
+  assert.equal(normalizePlayerName("  김   진우  "), "김 진우");
+  assert.equal(normalizePlayerName(""), "");
+  assert.equal(normalizePlayerName("가".repeat(13)), "");
+  assert.deepEqual(
+    parsePlayerSetup(JSON.stringify({
+      language: "ko",
+      profile: "female",
+      name: "  수아  ",
+    })),
+    { language: "ko", profile: "female", name: "수아" },
+  );
+  assert.equal(parsePlayerSetup("not-json"), null);
+  assert.equal(parsePlayerSetup(JSON.stringify({
+    language: "en",
+    profile: "male",
+    name: "지호",
+  })), null);
+  assert.equal(parsePlayerSetup(JSON.stringify({
+    language: "ko",
+    profile: "other",
+    name: "지호",
+  })), null);
 });
 
 test("ethical target choices keep the exact order and session index contract", () => {

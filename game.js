@@ -14,6 +14,279 @@ export const PROCESSING_OPTIMIZATION_COST = 5_000_000;
 export const OPTIMIZED_PROCESSING_COUNT = 2;
 export const BUTTON_CAUSE_RATE = 0.01;
 export const TARGET_SELECTION_KEY = "jinwoo-button:target:v1";
+export const PLAYER_SETUP_KEY = "jinwoo-button:player:v1";
+const SFX_PREFERENCE_KEY = "jinwoo-button:sfx:v1";
+const BGM_PREFERENCE_KEY = "jinwoo-button:bgm:v1";
+const DIALOGUE_BLIP_VOLUME_KEY = "jinwoo-button:dialogue-blip-volume:v1";
+const SFX_MASTER_GAIN = 0.65;
+const SFX_ROULETTE_INTERVAL_MS = 60;
+const SFX_PRESS_VOICE_LIMIT = 3;
+const DIALOGUE_BLIP_INTERVAL_MS = 60;
+const DIALOGUE_BLIP_VOICE_LIMIT = 2;
+const DIALOGUE_BLIP_VOLUME_DEFAULT = 1.4;
+const DIALOGUE_BLIP_VOLUME_MIN = 0;
+const DIALOGUE_BLIP_VOLUME_MAX = 2;
+const DIALOGUE_BLIP_PROFILE = Object.freeze({
+  oscillatorType: "triangle",
+  startFrequencyHz: 220,
+  endFrequencyHz: 196,
+  lowpassFrequencyHz: 1_400,
+  lowpassQ: 0.7,
+  peakGain: 0.07,
+  sustainGain: 0.028,
+  attackMs: 3,
+  sustainMs: 24,
+  releaseMs: 58,
+  durationMs: 62,
+  detuneCents: Object.freeze([-10, -3, 4, 9]),
+});
+const OPENING_PARALLAX_PROFILE = Object.freeze({
+  roomXInCqw: 0.45,
+  roomYInCqh: 0.3,
+  demonXInCqw: 0.9,
+  demonYInCqh: 0.6,
+});
+const BGM_MASTER_GAIN = 0.18;
+const BGM_TITLE_GAIN = 0.15;
+const BGM_DUCK_GAIN = 0.08;
+const BGM_FADE_IN_MS = 1_500;
+const BGM_DUCK_ATTACK_MS = 80;
+const BGM_DUCK_HOLD_MS = 500;
+const BGM_DUCK_RELEASE_MS = 500;
+const BGM_EARLY_END_FADE_MS = 1_000;
+const BGM_DEFINITIONS = Object.freeze({
+  title: Object.freeze({
+    path: "./assets/audio/bgm-title-neon-static.mp3",
+    gain: BGM_TITLE_GAIN,
+  }),
+  contract: Object.freeze({
+    path: "./assets/audio/bgm-contract-salon.mp3",
+    gain: BGM_MASTER_GAIN,
+  }),
+});
+const SFX_DEFINITIONS = Object.freeze({
+  switchPress: Object.freeze({
+    path: "./assets/audio/switch-press.wav",
+    gain: 0.55,
+    group: "press",
+  }),
+  switchPressHeavy: Object.freeze({
+    path: "./assets/audio/switch-press-heavy.wav",
+    gain: 0.48,
+    group: "press",
+  }),
+  rouletteLock: Object.freeze({
+    path: "./assets/audio/roulette-lock.wav",
+    gain: 0.18,
+    group: "roulette",
+  }),
+  resultLatch: Object.freeze({
+    path: "./assets/audio/result-latch.wav",
+    gain: 0.42,
+    group: "result",
+  }),
+  uiAdvance: Object.freeze({
+    path: "./assets/audio/ui-advance.wav",
+    gain: 0.35,
+    group: "ui",
+  }),
+});
+export const PLAYER_PROFILES = Object.freeze(["male", "female"]);
+export const MAX_PLAYER_NAME_LENGTH = 12;
+export const OPENING_BEATS = Object.freeze([
+  {
+    kind: "title",
+    voice: null,
+    visualState: "none",
+    title: "100만원 버튼",
+    copy: "",
+    action: "[ 누르기 ]",
+    actionLabel: "100만원 버튼을 누른다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“아, {name} 씨.\n잊으셨군요?”",
+    action: "[ 설명을 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“그럼 제가 설명해 드릴게요.\n후훗.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: [
+      "“오늘도 변함없는 야근.",
+      "밤 11시 30분에야 퇴근했지요.”",
+    ].join("\n"),
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: [
+      "“월세 55만 원짜리 방에",
+      "몸을 누이면 하루가 끝났지요.”",
+    ].join("\n"),
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: [
+      "“당신에게 소리치는 상사,",
+      "참 지긋지긋했겠지요.”",
+    ].join("\n"),
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: [
+      "“매일 야근을 강요한 회사도",
+      "블랙 기업과 다름없었지요.”",
+    ].join("\n"),
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“나는 왜 살고 있는 걸까.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“어릴 때는 이런 삶을\n꿈꾸지 않았는데.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“살고 싶지 않다.\n그렇다고 죽고 싶은 것도 아니다.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“돈만… 돈만 있으면\n이 지긋지긋한 생활도 끝날 텐데.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“대학 학자금 대출도\n5,000만 원이나 남아 있었지요.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“당신에게는 돈이\n더 절실했겠지요.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "demon",
+    title: "우아한 여성 악마",
+    copy: "“젠장… 아, 죽고 싶다.\n캔맥주나 마시고 잠들어야겠다.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "room-hint",
+    title: "우아한 여성 악마",
+    copy: "“그렇게 하루를 끝내려던 그날,\n결국 과로로 쓰러졌어요.”",
+    action: "[ 눈을 뜬다 ]",
+    actionLabel: "과로로 쓰러진 뒤 눈을 뜬다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "room-reveal",
+    title: "우아한 여성 악마",
+    copy: "“다시 눈을 떴을 때…\n이미 이 방으로 끌려와 있었지요.”",
+    action: "[ 방을 둘러본다 ]",
+    actionLabel: "끌려온 방을 둘러본다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "room-reveal",
+    title: "우아한 여성 악마",
+    copy: "“이제 기억나시나요,\n{name} 씨?”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "room-reveal",
+    title: "우아한 여성 악마",
+    copy: "“버튼을 한 번 누를 때마다\n누군가 한 명이 죽어요.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "room-reveal",
+    title: "우아한 여성 악마",
+    copy: "“당신은 100만 원을 받아요.\n누가 죽을지는 룰렛이 고르지요.”",
+    action: "[ 계속 듣는다 ]",
+    actionLabel: "여성 악마의 설명을 계속 듣는다.",
+  },
+  {
+    kind: "dialogue",
+    voice: "elegant-demon",
+    visualState: "room-reveal",
+    title: "우아한 여성 악마",
+    copy: "“누를지는 오직 당신이 정하지요.\n자, 시작해 볼까요?”",
+    action: "[ 시작한다 ]",
+    actionLabel: "설명을 듣고 대상 조건을 정한다.",
+  },
+].map(Object.freeze));
 export const ETHICS_TARGETS = Object.freeze([
   "전 세계 사람 중 무작위 1명",
   "유죄가 확정된 범죄자 중 1명",
@@ -105,6 +378,8 @@ const LOCATION_BY_CODE = new Map(LOCATIONS.map((location) => [location.code, loc
 const CAUSE_BY_ID = new Map(CAUSES.map((cause) => [cause.id, cause]));
 const MAX_ANNOUNCEMENTS = 24;
 const DISSOLVE_MS = 620;
+const SCENE_DISSOLVE_PHASE_MS = 180;
+const SCENE_INPUT_GUARD_MS = 360;
 const RESULT_HOLD_MS = 750;
 const MONEY_FLASH_MS = 430;
 const MONEY_ROLL_MS = 190;
@@ -113,6 +388,25 @@ const BUTTON_WAVE_MS = 260;
 const BUTTON_TRAIL_WAVE_MS = 420;
 const CELEBRATION_HOLD_MS = 1_250;
 const SPACE_REPEAT_THROTTLE_MS = 90;
+const OPENING_ADVANCE_GUARD_MS = 350;
+const OPENING_TEXT_PRESS_MS = 90;
+const OPENING_TYPE_DELAY_MS = 30;
+const OPENING_SHORT_PAUSE_MS = 90;
+const OPENING_SENTENCE_PAUSE_MS = 160;
+
+function openingCharacterDelay(character) {
+  if (character === "," || character === "\n") {
+    return OPENING_TYPE_DELAY_MS + OPENING_SHORT_PAUSE_MS;
+  }
+  if ([".", "?", "!", "…"].includes(character)) {
+    return OPENING_TYPE_DELAY_MS + OPENING_SENTENCE_PAUSE_MS;
+  }
+  return OPENING_TYPE_DELAY_MS;
+}
+
+export function isDialogueBlipCharacter(character) {
+  return typeof character === "string" && /^[\p{L}\p{N}]$/u.test(character);
+}
 
 export function defaultState() {
   return {
@@ -153,6 +447,40 @@ export function parseTargetSelection(raw) {
   }
   const index = Number(raw);
   return index >= 0 && index < ETHICS_TARGETS.length ? index : null;
+}
+
+export function normalizePlayerName(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  const name = value.trim().replace(/\s+/gu, " ");
+  return name.length > 0 && [...name].length <= MAX_PLAYER_NAME_LENGTH
+    ? name
+    : "";
+}
+
+export function parsePlayerSetup(raw) {
+  if (typeof raw !== "string") {
+    return null;
+  }
+  try {
+    const value = JSON.parse(raw);
+    const name = normalizePlayerName(value?.name);
+    if (
+      value?.language !== "ko"
+      || !PLAYER_PROFILES.includes(value?.profile)
+      || !name
+    ) {
+      return null;
+    }
+    return {
+      language: "ko",
+      profile: value.profile,
+      name,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function progressionForPresses(presses) {
@@ -592,7 +920,32 @@ export function serializeState(state) {
 
 function initializeGame() {
   const elements = {
+    stage: document.querySelector(".stage"),
+    setupScreen: document.querySelector("#setup-screen"),
+    setupTitle: document.querySelector("#setup-title"),
+    setupLanguage: document.querySelector("#setup-language"),
+    languageKorean: document.querySelector("#language-korean"),
+    setupProfile: document.querySelector("#setup-profile"),
+    profileMale: document.querySelector("#profile-male"),
+    profileFemale: document.querySelector("#profile-female"),
+    setupNameForm: document.querySelector("#setup-name-form"),
+    playerNameInput: document.querySelector("#player-name"),
+    nameError: document.querySelector("#name-error"),
+    nameConfirm: document.querySelector("#name-confirm"),
+    openingScreen: document.querySelector("#opening-screen"),
+    playerIdentity: document.querySelector("#player-identity"),
+    playerAvatar: document.querySelector("#player-avatar"),
+    openingPlayerName: document.querySelector("#opening-player-name"),
+    openingMessage: document.querySelector("#opening-message"),
+    openingTitle: document.querySelector("#opening-title"),
+    openingCopy: document.querySelector("#opening-copy"),
+    openingAnnouncement: document.querySelector("#opening-announcement"),
+    openingAdvance: document.querySelector("#opening-advance"),
     statusBar: document.querySelector("#status-bar"),
+    musicToggle: document.querySelector("#music-toggle"),
+    soundToggle: document.querySelector("#sound-toggle"),
+    dialogueBlipVolume: document.querySelector("#dialogue-volume"),
+    dialogueBlipVolumeValue: document.querySelector("#dialogue-volume-value"),
     population: document.querySelector("#population"),
     money: document.querySelector("#money"),
     moneyDisplay: document.querySelector("#money-display"),
@@ -623,7 +976,32 @@ function initializeGame() {
   };
 
   if (
-    !elements.statusBar
+    !elements.stage
+    || !elements.setupScreen
+    || !elements.setupTitle
+    || !elements.setupLanguage
+    || !elements.languageKorean
+    || !elements.setupProfile
+    || !elements.profileMale
+    || !elements.profileFemale
+    || !elements.setupNameForm
+    || !elements.playerNameInput
+    || !elements.nameError
+    || !elements.nameConfirm
+    || !elements.openingScreen
+    || !elements.playerIdentity
+    || !elements.playerAvatar
+    || !elements.openingPlayerName
+    || !elements.openingMessage
+    || !elements.openingTitle
+    || !elements.openingCopy
+    || !elements.openingAnnouncement
+    || !elements.openingAdvance
+    || !elements.statusBar
+    || !elements.musicToggle
+    || !elements.soundToggle
+    || !elements.dialogueBlipVolume
+    || !elements.dialogueBlipVolumeValue
     || !elements.population
     || !elements.money
     || !elements.moneyDisplay
@@ -685,21 +1063,65 @@ function initializeGame() {
   let persistenceAvailable = true;
   const activeRolls = new Set();
   const celebrationQueue = [];
+  const sfxEncodedData = new Map();
+  const sfxBuffers = new Map();
+  const sfxDecodePromises = new Map();
+  const activeSfxSources = new Set();
+  const activePressSources = [];
+  const activeDialogueSources = [];
   let rollTimer = null;
   let moneyFlashTimer = null;
   let moneyRollTimer = null;
   let buttonPressTimer = null;
   let buttonWaveTimer = null;
   let audioContext = null;
-  let clickNoiseBuffer = null;
+  let sfxMasterGain = null;
+  let bgmMasterGain = null;
+  let sfxLoadPromise = null;
+  const bgmEncodedData = new Map();
+  const bgmBuffers = new Map();
+  const bgmDecodePromises = new Map();
+  const bgmLoadPromises = new Map();
+  const bgmOffsets = new Map();
+  let activeBgmSource = null;
+  let activeBgmTrack = null;
+  let bgmTrack = null;
+  let bgmStartedAt = 0;
+  let bgmStopTimer = null;
+  let bgmShouldPlay = false;
+  let soundEnabled = true;
+  let soundPreferenceAvailable = true;
+  let dialogueBlipVolume = DIALOGUE_BLIP_VOLUME_DEFAULT;
+  let dialogueBlipVolumePreferenceAvailable = true;
+  let musicEnabled = true;
+  let musicPreferenceAvailable = true;
+  let lastRouletteLockAt = Number.NEGATIVE_INFINITY;
+  let lastDialogueBlipAt = Number.NEGATIVE_INFINITY;
+  let dialogueBlipSequence = 0;
   let celebrationActive = false;
   let pendingMoneyFlash = false;
   let pendingMoneyRoll = false;
   let lastSpacePressAt = Number.NEGATIVE_INFINITY;
   let gameStarted = false;
+  let playerSetup = null;
+  let setupDraft = { language: null, profile: null };
+  let openingBeatIndex = 0;
+  let lastOpeningAdvanceAt = Number.NEGATIVE_INFINITY;
+  let openingTextPressTimer = null;
+  let openingTypingTimer = null;
+  let openingTypingGeneration = 0;
+  let openingFullCopy = "";
+  let openingTypingComplete = true;
+  let openingParallaxFrame = null;
+  let openingParallaxPointer = null;
+  let sceneTransition = null;
+  let sceneTransitionTimer = null;
+  let sceneTransitionGeneration = 0;
   let selectedTargetIndex = null;
   let questionIndex = 0;
+  let lastEthicsRejectAt = Number.NEGATIVE_INFINITY;
   let targetStorageAvailable = true;
+  let playerSetupStorageAvailable = true;
 
   try {
     const parsed = parseStoredState(window.localStorage.getItem(STORAGE_KEY));
@@ -710,6 +1132,38 @@ function initializeGame() {
   } catch {
     persistenceAvailable = false;
     elements.warning.textContent = "저장 못 함. 닫으면 잊음.";
+  }
+
+  try {
+    soundEnabled = window.localStorage.getItem(SFX_PREFERENCE_KEY) !== "0";
+  } catch {
+    soundPreferenceAvailable = false;
+    soundEnabled = true;
+  }
+
+  try {
+    const storedDialogueBlipVolume = window.localStorage.getItem(
+      DIALOGUE_BLIP_VOLUME_KEY,
+    );
+    if (storedDialogueBlipVolume !== null) {
+      const parsedDialogueBlipVolume = Number(storedDialogueBlipVolume);
+      if (Number.isFinite(parsedDialogueBlipVolume)) {
+        dialogueBlipVolume = Math.min(
+          Math.max(parsedDialogueBlipVolume, DIALOGUE_BLIP_VOLUME_MIN),
+          DIALOGUE_BLIP_VOLUME_MAX,
+        );
+      }
+    }
+  } catch {
+    dialogueBlipVolumePreferenceAvailable = false;
+    dialogueBlipVolume = DIALOGUE_BLIP_VOLUME_DEFAULT;
+  }
+
+  try {
+    musicEnabled = window.localStorage.getItem(BGM_PREFERENCE_KEY) !== "0";
+  } catch {
+    musicPreferenceAvailable = false;
+    musicEnabled = true;
   }
 
   function persist() {
@@ -750,9 +1204,140 @@ function initializeGame() {
     }
   }
 
+  function loadPlayerSetup() {
+    if (!playerSetupStorageAvailable) {
+      return playerSetup;
+    }
+    try {
+      return parsePlayerSetup(
+        window.sessionStorage.getItem(PLAYER_SETUP_KEY),
+      );
+    } catch {
+      playerSetupStorageAvailable = false;
+      return playerSetup;
+    }
+  }
+
+  function savePlayerSetup(value) {
+    playerSetup = value;
+    if (!playerSetupStorageAvailable) {
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(PLAYER_SETUP_KEY, JSON.stringify(value));
+    } catch {
+      playerSetupStorageAvailable = false;
+    }
+  }
+
+  function isSceneTransitioning() {
+    return sceneTransition !== null;
+  }
+
+  function clearSceneTransitionState() {
+    if (sceneTransitionTimer !== null) {
+      window.clearTimeout(sceneTransitionTimer);
+      sceneTransitionTimer = null;
+    }
+    document.body.classList.remove(
+      "is-scene-transitioning",
+      "is-scene-exiting",
+      "is-scene-entering",
+    );
+    elements.focusStage.removeAttribute("aria-busy");
+    sceneTransition = null;
+  }
+
+  function finishSceneTransition() {
+    if (!sceneTransition) {
+      return false;
+    }
+
+    const activeTransition = sceneTransition;
+    if (sceneTransitionTimer !== null) {
+      window.clearTimeout(sceneTransitionTimer);
+      sceneTransitionTimer = null;
+    }
+    sceneTransitionGeneration += 1;
+
+    const commit = activeTransition.phase === "out"
+      ? activeTransition.commit
+      : null;
+    activeTransition.commit = null;
+    try {
+      if (commit) {
+        commit();
+      }
+    } finally {
+      clearSceneTransitionState();
+    }
+    return true;
+  }
+
+  function transitionScene(commit) {
+    if (typeof commit !== "function" || isSceneTransitioning()) {
+      return false;
+    }
+
+    cancelOpeningTextPress();
+    cancelOpeningTyping();
+    if (reducedMotion.matches) {
+      const generation = sceneTransitionGeneration + 1;
+      sceneTransitionGeneration = generation;
+      sceneTransition = { generation, phase: "in", commit: null };
+      elements.focusStage.setAttribute("aria-busy", "true");
+      document.body.classList.add("is-scene-transitioning");
+      try {
+        commit();
+      } catch (error) {
+        clearSceneTransitionState();
+        throw error;
+      }
+      sceneTransitionTimer = window.setTimeout(() => {
+        if (sceneTransition?.generation === generation) {
+          clearSceneTransitionState();
+        }
+      }, SCENE_INPUT_GUARD_MS);
+      return true;
+    }
+
+    const generation = sceneTransitionGeneration + 1;
+    sceneTransitionGeneration = generation;
+    sceneTransition = { generation, phase: "out", commit };
+    elements.focusStage.setAttribute("aria-busy", "true");
+    document.body.classList.add("is-scene-transitioning", "is-scene-exiting");
+
+    sceneTransitionTimer = window.setTimeout(() => {
+      if (sceneTransition?.generation !== generation) {
+        return;
+      }
+
+      sceneTransitionTimer = null;
+      const activeTransition = sceneTransition;
+      const sceneCommit = activeTransition.commit;
+      activeTransition.phase = "in";
+      activeTransition.commit = null;
+      try {
+        sceneCommit();
+      } catch (error) {
+        clearSceneTransitionState();
+        throw error;
+      }
+
+      document.body.classList.remove("is-scene-exiting");
+      document.body.classList.add("is-scene-entering");
+      sceneTransitionTimer = window.setTimeout(() => {
+        if (sceneTransition?.generation === generation) {
+          clearSceneTransitionState();
+        }
+      }, SCENE_DISSOLVE_PHASE_MS);
+    }, SCENE_DISSOLVE_PHASE_MS);
+    return true;
+  }
+
   function renderEthicsQuestion() {
     const target = ETHICS_TARGETS[questionIndex];
-    elements.ethicsPrompt.classList.remove("is-dissolving", "is-refused");
+    elements.ethicsPrompt.classList.remove("is-refused");
     elements.ethicsQuestion.textContent = `대상: ${target}. 한 명 죽는다.`;
     elements.ethicsQuestion.setAttribute(
       "aria-label",
@@ -775,9 +1360,12 @@ function initializeGame() {
       return;
     }
 
+    cancelOpeningTyping();
+    activateBackgroundMusic("contract");
     gameStarted = true;
+    elements.setupScreen.hidden = true;
+    elements.openingScreen.hidden = true;
     elements.ethicsPrompt.hidden = true;
-    elements.ethicsPrompt.classList.remove("is-dissolving");
     elements.statusBar.hidden = false;
     elements.moneyDisplay.hidden = false;
     elements.warning.hidden = false;
@@ -800,38 +1388,49 @@ function initializeGame() {
   }
 
   function acceptEthicsQuestion() {
-    if (gameStarted || questionIndex >= ETHICS_TARGETS.length) {
+    if (
+      gameStarted
+      || questionIndex >= ETHICS_TARGETS.length
+      || isSceneTransitioning()
+    ) {
       return;
     }
 
     saveTargetSelection(questionIndex);
-    const finish = () => revealGame();
-    if (reducedMotion.matches) {
-      finish();
-      return;
-    }
-
-    elements.ethicsPrompt.classList.add("is-dissolving");
-    window.setTimeout(finish, DISSOLVE_MS);
+    playUiAdvance();
+    transitionScene(() => revealGame());
   }
 
   function rejectEthicsQuestion() {
-    if (gameStarted || questionIndex >= ETHICS_TARGETS.length) {
+    if (
+      gameStarted
+      || questionIndex >= ETHICS_TARGETS.length
+      || isSceneTransitioning()
+    ) {
       return;
     }
+    const now = performance.now();
+    if (now - lastEthicsRejectAt < SCENE_INPUT_GUARD_MS) {
+      return;
+    }
+    lastEthicsRejectAt = now;
+    playUiAdvance();
     if (questionIndex < ETHICS_TARGETS.length - 1) {
       questionIndex += 1;
       renderEthicsQuestion();
       return;
     }
 
-    questionIndex = ETHICS_TARGETS.length;
-    elements.ethicsPrompt.classList.add("is-refused");
-    elements.ethicsQuestion.textContent = "너는 누르지 않았다.";
-    elements.ethicsQuestion.setAttribute("aria-label", "너는 누르지 않았다.");
-    elements.ethicsReward.hidden = true;
-    elements.ethicsActions.hidden = true;
-    elements.ethicsQuestion.focus({ preventScroll: true });
+    transitionScene(() => {
+      questionIndex = ETHICS_TARGETS.length;
+      fadeOutBackgroundMusic(BGM_EARLY_END_FADE_MS);
+      elements.ethicsPrompt.classList.add("is-refused");
+      elements.ethicsQuestion.textContent = "너는 누르지 않았다.";
+      elements.ethicsQuestion.setAttribute("aria-label", "너는 누르지 않았다.");
+      elements.ethicsReward.hidden = true;
+      elements.ethicsActions.hidden = true;
+      elements.ethicsQuestion.focus({ preventScroll: true });
+    });
   }
 
   function onEthicsDecisionKeyDown(event) {
@@ -839,6 +1438,9 @@ function initializeGame() {
       return;
     }
     event.preventDefault();
+    if (event.repeat || isSceneTransitioning()) {
+      return;
+    }
     if (event.currentTarget === elements.ethicsAccept) {
       acceptEthicsQuestion();
     } else {
@@ -846,14 +1448,509 @@ function initializeGame() {
     }
   }
 
+  function cancelOpeningTextPress() {
+    if (openingTextPressTimer !== null) {
+      window.clearTimeout(openingTextPressTimer);
+      openingTextPressTimer = null;
+    }
+    elements.openingMessage.classList.remove("is-pressed");
+    elements.openingMessage.setAttribute("aria-pressed", "false");
+  }
+
+  function cancelOpeningTyping() {
+    if (openingTypingTimer !== null) {
+      window.clearTimeout(openingTypingTimer);
+      openingTypingTimer = null;
+    }
+    openingTypingGeneration += 1;
+    openingTypingComplete = true;
+    stopDialogueBlips();
+  }
+
+  function completeOpeningTyping() {
+    if (openingTypingComplete) {
+      return false;
+    }
+    cancelOpeningTyping();
+    elements.openingCopy.textContent = openingFullCopy;
+    const beat = OPENING_BEATS[openingBeatIndex];
+    if (beat) {
+      elements.openingAdvance.setAttribute("aria-label", beat.actionLabel);
+      elements.openingMessage.setAttribute("aria-label", beat.actionLabel);
+    }
+    return true;
+  }
+
+  function typeOpeningCopy(beat, copy) {
+    cancelOpeningTyping();
+    openingFullCopy = copy;
+    elements.openingAnnouncement.textContent = beat.kind === "title"
+      ? ""
+      : [beat.title, copy].filter(Boolean).join(". ");
+    elements.openingCopy.hidden = copy.length === 0;
+    elements.openingCopy.textContent = copy;
+
+    if (!copy || beat.kind === "title" || reducedMotion.matches) {
+      return;
+    }
+
+    const characters = Array.from(copy);
+    const generation = openingTypingGeneration;
+    let characterIndex = 0;
+    let visibleCopy = "";
+    openingTypingComplete = false;
+    elements.openingCopy.textContent = "";
+    elements.openingAdvance.setAttribute(
+      "aria-label",
+      "현재 대사를 끝까지 표시한다.",
+    );
+    elements.openingMessage.setAttribute(
+      "aria-label",
+      "현재 대사를 끝까지 표시한다.",
+    );
+
+    function typeNextCharacter() {
+      if (generation !== openingTypingGeneration) {
+        return;
+      }
+      const character = characters[characterIndex];
+      visibleCopy += character;
+      characterIndex += 1;
+      elements.openingCopy.textContent = visibleCopy;
+      playDialogueBlip(beat.voice, character);
+
+      if (characterIndex >= characters.length) {
+        openingTypingTimer = null;
+        openingTypingComplete = true;
+        elements.openingAdvance.setAttribute(
+          "aria-label",
+          beat.actionLabel,
+        );
+        elements.openingMessage.setAttribute("aria-label", beat.actionLabel);
+        return;
+      }
+
+      openingTypingTimer = window.setTimeout(
+        typeNextCharacter,
+        openingCharacterDelay(character),
+      );
+    }
+
+    typeNextCharacter();
+  }
+
+  function isOpeningParallaxActive() {
+    return !reducedMotion.matches
+      && !elements.openingScreen.hidden
+      && elements.openingScreen.classList.contains("is-dialogue")
+      && elements.openingScreen.dataset.openingVisual !== "none";
+  }
+
+  function clampOpeningParallaxAxis(value) {
+    return Math.min(Math.max(value, -1), 1);
+  }
+
+  function formatOpeningParallaxShift(value, unit) {
+    const rounded = Number(value.toFixed(4));
+    return `${rounded}${unit}`;
+  }
+
+  function applyOpeningParallax(x = 0, y = 0) {
+    elements.openingScreen.style.setProperty(
+      "--opening-room-shift-x",
+      formatOpeningParallaxShift(
+        -x * OPENING_PARALLAX_PROFILE.roomXInCqw,
+        "cqw",
+      ),
+    );
+    elements.openingScreen.style.setProperty(
+      "--opening-room-shift-y",
+      formatOpeningParallaxShift(
+        -y * OPENING_PARALLAX_PROFILE.roomYInCqh,
+        "cqh",
+      ),
+    );
+    elements.openingScreen.style.setProperty(
+      "--opening-demon-shift-x",
+      formatOpeningParallaxShift(
+        -x * OPENING_PARALLAX_PROFILE.demonXInCqw,
+        "cqw",
+      ),
+    );
+    elements.openingScreen.style.setProperty(
+      "--opening-demon-shift-y",
+      formatOpeningParallaxShift(
+        -y * OPENING_PARALLAX_PROFILE.demonYInCqh,
+        "cqh",
+      ),
+    );
+  }
+
+  function scheduleOpeningParallaxFrame() {
+    if (openingParallaxFrame === null) {
+      openingParallaxFrame = window.requestAnimationFrame(renderOpeningParallaxFrame);
+    }
+  }
+
+  function renderOpeningParallaxFrame() {
+    openingParallaxFrame = null;
+    if (!openingParallaxPointer || !isOpeningParallaxActive()) {
+      applyOpeningParallax();
+      return;
+    }
+    const bounds = elements.stage.getBoundingClientRect();
+    if (
+      openingParallaxPointer.x < bounds.left
+      || openingParallaxPointer.x > bounds.right
+      || openingParallaxPointer.y < bounds.top
+      || openingParallaxPointer.y > bounds.bottom
+    ) {
+      openingParallaxPointer = null;
+      applyOpeningParallax();
+      return;
+    }
+    const x = bounds.width > 0
+      ? clampOpeningParallaxAxis(
+        (openingParallaxPointer.x - bounds.left - (bounds.width / 2))
+        / (bounds.width / 2),
+      )
+      : 0;
+    const y = bounds.height > 0
+      ? clampOpeningParallaxAxis(
+        (openingParallaxPointer.y - bounds.top - (bounds.height / 2))
+        / (bounds.height / 2),
+      )
+      : 0;
+    applyOpeningParallax(x, y);
+  }
+
+  function resetOpeningParallax() {
+    openingParallaxPointer = null;
+    if (openingParallaxFrame !== null) {
+      window.cancelAnimationFrame(openingParallaxFrame);
+      openingParallaxFrame = null;
+    }
+    applyOpeningParallax();
+  }
+
+  function onOpeningParallaxPointerMove(event) {
+    if (event.pointerType !== "mouse" || !isOpeningParallaxActive()) {
+      return;
+    }
+    openingParallaxPointer = { x: event.clientX, y: event.clientY };
+    scheduleOpeningParallaxFrame();
+  }
+
+  function onOpeningParallaxPointerLeave(event) {
+    if (event.pointerType === "mouse") {
+      resetOpeningParallax();
+    }
+  }
+
+  function onReducedMotionChange(event) {
+    if (event.matches) {
+      cancelOpeningTextPress();
+      resetOpeningParallax();
+      completeOpeningTyping();
+      stopDialogueBlips();
+      finishSceneTransition();
+    }
+  }
+
+  function showSetupStep(step) {
+    cancelOpeningTextPress();
+    cancelOpeningTyping();
+    resetOpeningParallax();
+    elements.setupScreen.hidden = false;
+    elements.openingScreen.hidden = true;
+    elements.ethicsPrompt.hidden = true;
+    elements.setupLanguage.hidden = step !== "language";
+    elements.setupProfile.hidden = step !== "profile";
+    elements.setupNameForm.hidden = step !== "name";
+
+    if (step === "language") {
+      elements.setupTitle.textContent = "어떤 언어로 플레이하시겠습니까?";
+      elements.languageKorean.focus({ preventScroll: true });
+      return;
+    }
+    if (step === "profile") {
+      elements.setupTitle.textContent = "당신은 누구입니까?";
+      elements.profileMale.focus({ preventScroll: true });
+      return;
+    }
+
+    elements.setupTitle.textContent = "당신의 이름은?";
+    elements.nameError.hidden = true;
+    elements.playerNameInput.removeAttribute("aria-invalid");
+    elements.playerNameInput.focus({ preventScroll: true });
+  }
+
+  function chooseLanguage() {
+    if (isSceneTransitioning()) {
+      return;
+    }
+    setupDraft = { ...setupDraft, language: "ko" };
+    playUiAdvance();
+    showSetupStep("profile");
+  }
+
+  function chooseProfile(profile) {
+    if (!PLAYER_PROFILES.includes(profile) || isSceneTransitioning()) {
+      return;
+    }
+    setupDraft = { ...setupDraft, profile };
+    playUiAdvance();
+    showSetupStep("name");
+  }
+
+  function onSetupActionKeyDown(event) {
+    if (event.code !== "Space" && event.key !== "Enter") {
+      return;
+    }
+    event.preventDefault();
+    if (event.repeat || isSceneTransitioning()) {
+      return;
+    }
+    event.currentTarget.click();
+  }
+
+  function renderPlayerIdentity() {
+    if (!playerSetup) {
+      return;
+    }
+    elements.playerAvatar.classList.toggle(
+      "is-female",
+      playerSetup.profile === "female",
+    );
+    elements.openingPlayerName.textContent = playerSetup.name;
+    const profileLabel = playerSetup.profile === "female" ? "여성" : "남성";
+    elements.playerIdentity.setAttribute(
+      "aria-label",
+      `플레이어 ${playerSetup.name}. ${profileLabel} 프로필.`,
+    );
+  }
+
+  function showOpeningTitle() {
+    activateBackgroundMusic("title");
+    openingBeatIndex = 0;
+    elements.setupScreen.hidden = true;
+    elements.openingScreen.hidden = false;
+    elements.ethicsPrompt.hidden = true;
+    elements.playerIdentity.hidden = true;
+    renderOpeningBeat();
+    elements.openingAdvance.focus({ preventScroll: true });
+  }
+
+  function beginOpeningStory() {
+    if (!playerSetup) {
+      return;
+    }
+    activateBackgroundMusic("contract");
+    openingBeatIndex = 1;
+    elements.setupScreen.hidden = true;
+    elements.openingScreen.hidden = false;
+    elements.ethicsPrompt.hidden = true;
+    renderPlayerIdentity();
+    renderOpeningBeat();
+    elements.openingMessage.focus({ preventScroll: true });
+  }
+
+  function onSetupNameSubmit(event) {
+    event.preventDefault();
+    if (isSceneTransitioning()) {
+      return;
+    }
+    const name = normalizePlayerName(elements.playerNameInput.value);
+    if (!name || !setupDraft.language || !setupDraft.profile) {
+      elements.nameError.hidden = false;
+      elements.playerNameInput.setAttribute("aria-invalid", "true");
+      elements.playerNameInput.focus({ preventScroll: true });
+      return;
+    }
+
+    const completedSetup = {
+      language: setupDraft.language,
+      profile: setupDraft.profile,
+      name,
+    };
+    savePlayerSetup(completedSetup);
+    playUiAdvance();
+    transitionScene(() => beginOpeningStory());
+  }
+
+  function onPlayerNameKeyDown(event) {
+    if (event.key !== "Enter" || event.isComposing) {
+      return;
+    }
+    event.preventDefault();
+    elements.setupNameForm.requestSubmit();
+  }
+
   function initializeEthicsFlow() {
+    cancelOpeningTextPress();
+    cancelOpeningTyping();
+    resetOpeningParallax();
+    openingBeatIndex = OPENING_BEATS.length;
+    elements.setupScreen.hidden = true;
+    elements.openingScreen.hidden = true;
+    elements.ethicsPrompt.hidden = false;
+    renderEthicsQuestion();
+    elements.ethicsQuestion.focus({ preventScroll: true });
+  }
+
+  function renderOpeningBeat() {
+    cancelOpeningTextPress();
+    const beat = OPENING_BEATS[openingBeatIndex];
+    if (beat.kind !== "dialogue" || beat.visualState === "none") {
+      resetOpeningParallax();
+    }
+    const playerName = playerSetup?.name || "당신";
+    const copy = beat.copy.split("{name}").join(playerName);
+    elements.openingScreen.classList.toggle(
+      "is-narrative",
+      beat.kind !== "title",
+    );
+    elements.openingScreen.classList.toggle(
+      "is-title",
+      beat.kind === "title",
+    );
+    elements.openingScreen.classList.toggle(
+      "is-dialogue",
+      beat.kind === "dialogue",
+    );
+    elements.openingScreen.dataset.openingVisual = beat.visualState;
+    elements.playerIdentity.hidden = true;
+    elements.openingTitle.textContent = beat.title;
+    const isDialogue = beat.kind === "dialogue";
+    elements.openingMessage.tabIndex = isDialogue ? 0 : -1;
+    if (isDialogue) {
+      elements.openingMessage.setAttribute("role", "button");
+      elements.openingMessage.setAttribute("aria-keyshortcuts", "Space Enter");
+      elements.openingMessage.setAttribute("aria-label", beat.actionLabel);
+    } else {
+      elements.openingMessage.removeAttribute("role");
+      elements.openingMessage.removeAttribute("aria-keyshortcuts");
+      elements.openingMessage.removeAttribute("aria-label");
+      elements.openingMessage.removeAttribute("aria-pressed");
+    }
+    elements.openingAdvance.hidden = isDialogue;
+    elements.openingAdvance.disabled = isDialogue;
+    elements.openingAdvance.textContent = beat.kind === "dialogue"
+      ? beat.action.replace(/^\[\s*|\s*\]$/gu, "")
+      : beat.action;
+    elements.openingAdvance.setAttribute("aria-label", beat.actionLabel);
+    typeOpeningCopy(beat, copy);
+  }
+
+  function isOpeningDialogueActive() {
+    return !gameStarted
+      && !elements.openingScreen.hidden
+      && elements.openingScreen.classList.contains("is-dialogue");
+  }
+
+  function triggerOpeningTextAdvance() {
+    if (
+      !isOpeningDialogueActive()
+      || isSceneTransitioning()
+      || openingTextPressTimer !== null
+      || performance.now() - lastOpeningAdvanceAt < OPENING_ADVANCE_GUARD_MS
+    ) {
+      return false;
+    }
+
+    elements.openingMessage.classList.add("is-pressed");
+    elements.openingMessage.setAttribute("aria-pressed", "true");
+    openingTextPressTimer = window.setTimeout(() => {
+      openingTextPressTimer = null;
+      elements.openingMessage.classList.remove("is-pressed");
+      elements.openingMessage.setAttribute("aria-pressed", "false");
+      advanceOpening();
+    }, reducedMotion.matches ? 0 : OPENING_TEXT_PRESS_MS);
+    return true;
+  }
+
+  function onOpeningMessageClick() {
+    triggerOpeningTextAdvance();
+  }
+
+  function onOpeningMessageKeyDown(event) {
+    if (event.key !== "Enter") {
+      return;
+    }
+    event.preventDefault();
+    if (!event.repeat) {
+      triggerOpeningTextAdvance();
+    }
+  }
+
+  function advanceOpening() {
+    if (
+      gameStarted
+      || openingBeatIndex >= OPENING_BEATS.length
+      || isSceneTransitioning()
+    ) {
+      return;
+    }
+
+    const now = performance.now();
+    if (now - lastOpeningAdvanceAt < OPENING_ADVANCE_GUARD_MS) {
+      return;
+    }
+    lastOpeningAdvanceAt = now;
+    playUiAdvance();
+    if (!openingTypingComplete) {
+      completeOpeningTyping();
+      return;
+    }
+
+    if (openingBeatIndex === 0) {
+      transitionScene(() => {
+        if (playerSetup) {
+          beginOpeningStory();
+        } else {
+          showSetupStep("language");
+        }
+      });
+      return;
+    }
+
+    if (openingBeatIndex < OPENING_BEATS.length - 1) {
+      openingBeatIndex += 1;
+      renderOpeningBeat();
+      return;
+    }
+
+    transitionScene(() => initializeEthicsFlow());
+  }
+
+  function onOpeningActionKeyDown(event) {
+    if (event.code !== "Space" && event.key !== "Enter") {
+      return;
+    }
+    event.preventDefault();
+    if (event.repeat) {
+      return;
+    }
+    advanceOpening();
+  }
+
+  function initializeOpeningFlow() {
     const restoredTargetIndex = loadTargetSelection();
     if (restoredTargetIndex !== null) {
       selectedTargetIndex = restoredTargetIndex;
+      elements.openingScreen.hidden = true;
       revealGame({ focusButton: false });
       return;
     }
-    renderEthicsQuestion();
+    const restoredPlayerSetup = loadPlayerSetup();
+    if (restoredPlayerSetup) {
+      playerSetup = restoredPlayerSetup;
+      setupDraft = {
+        language: restoredPlayerSetup.language,
+        profile: restoredPlayerSetup.profile,
+      };
+    }
+    showOpeningTitle();
   }
 
   function locationLabel(locationCode) {
@@ -991,15 +2088,36 @@ function initializeGame() {
     );
   }
 
-  function getAudioContext() {
+  function resetAudioState() {
+    if (bgmStopTimer !== null) {
+      window.clearTimeout(bgmStopTimer);
+      bgmStopTimer = null;
+    }
+    audioContext = null;
+    sfxMasterGain = null;
+    bgmMasterGain = null;
+    activeBgmSource = null;
+    activeBgmTrack = null;
+    bgmStartedAt = 0;
+    bgmBuffers.clear();
+    bgmDecodePromises.clear();
+    sfxBuffers.clear();
+    sfxDecodePromises.clear();
+    activeSfxSources.clear();
+    activePressSources.length = 0;
+    activeDialogueSources.length = 0;
+    lastDialogueBlipAt = Number.NEGATIVE_INFINITY;
+    dialogueBlipSequence = 0;
+  }
+
+  function getAudioContext({ resume = false } = {}) {
     try {
       const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextConstructor) {
         return null;
       }
       if (audioContext?.state === "closed") {
-        audioContext = null;
-        clickNoiseBuffer = null;
+        resetAudioState();
       }
       if (audioContext === null) {
         try {
@@ -1007,67 +2125,719 @@ function initializeGame() {
         } catch {
           audioContext = new AudioContextConstructor();
         }
+        sfxMasterGain = audioContext.createGain();
+        sfxMasterGain.gain.value = soundEnabled ? SFX_MASTER_GAIN : 0;
+        sfxMasterGain.connect(audioContext.destination);
+        bgmMasterGain = audioContext.createGain();
+        bgmMasterGain.gain.value = 0;
+        bgmMasterGain.connect(audioContext.destination);
       }
-      if (audioContext.state === "suspended") {
+      if (resume && audioContext.state === "suspended") {
         void audioContext.resume().catch(() => {});
       }
       return audioContext;
     } catch {
+      resetAudioState();
       return null;
     }
   }
 
-  function getClickNoiseBuffer(context) {
-    if (clickNoiseBuffer !== null) {
-      return clickNoiseBuffer;
+  function decodeSoundEffect(context, name, bytes) {
+    if (
+      sfxBuffers.has(name)
+      || sfxDecodePromises.has(name)
+      || context.state === "closed"
+    ) {
+      return sfxDecodePromises.get(name) || Promise.resolve();
     }
 
-    const frameCount = Math.max(1, Math.floor(context.sampleRate * 0.032));
-    clickNoiseBuffer = context.createBuffer(1, frameCount, context.sampleRate);
-    const samples = clickNoiseBuffer.getChannelData(0);
-    for (let index = 0; index < samples.length; index += 1) {
-      const decay = 1 - index / samples.length;
-      samples[index] = (Math.random() * 2 - 1) * decay;
-    }
-    return clickNoiseBuffer;
+    const decodePromise = context.decodeAudioData(bytes.slice(0))
+      .then((buffer) => {
+        if (audioContext === context && context.state !== "closed") {
+          sfxBuffers.set(name, buffer);
+        }
+      })
+      .catch(() => {
+        // Invalid audio is silent and does not affect the game.
+      })
+      .finally(() => {
+        if (sfxDecodePromises.get(name) === decodePromise) {
+          sfxDecodePromises.delete(name);
+        }
+      });
+    sfxDecodePromises.set(name, decodePromise);
+    return decodePromise;
   }
 
-  function playSwitchClick(enhanced = false) {
+  function decodeAvailableSoundEffects(context) {
+    if (!context || context.state === "closed") {
+      return Promise.resolve();
+    }
+    return Promise.all(
+      Array.from(sfxEncodedData, ([name, bytes]) => (
+        decodeSoundEffect(context, name, bytes)
+      )),
+    ).then(() => {});
+  }
+
+  function preloadSoundEffects() {
+    if (sfxLoadPromise !== null) {
+      return sfxLoadPromise;
+    }
+
+    if (typeof window.fetch !== "function") {
+      sfxLoadPromise = Promise.resolve();
+      return sfxLoadPromise;
+    }
+
+    sfxLoadPromise = Promise.all(
+      Object.entries(SFX_DEFINITIONS).map(async ([name, definition]) => {
+        try {
+          const response = await window.fetch(
+            new URL(definition.path, import.meta.url),
+          );
+          if (!response.ok) {
+            return;
+          }
+          const bytes = await response.arrayBuffer();
+          sfxEncodedData.set(name, bytes);
+          const context = audioContext;
+          if (context && context.state !== "closed") {
+            await decodeSoundEffect(context, name, bytes);
+          }
+        } catch {
+          // Missing audio is silent; gameplay never waits for an effect.
+        }
+      }),
+    ).then(() => {});
+    return sfxLoadPromise;
+  }
+
+  function decodeBackgroundMusic(context, track = bgmTrack) {
+    const bytes = bgmEncodedData.get(track);
+    if (
+      !BGM_DEFINITIONS[track]
+      || bgmBuffers.has(track)
+      || bgmDecodePromises.has(track)
+      || !bytes
+      || context.state === "closed"
+    ) {
+      return bgmDecodePromises.get(track) || Promise.resolve();
+    }
+
+    const decodePromise = context.decodeAudioData(bytes.slice(0))
+      .then((buffer) => {
+        if (audioContext === context && context.state !== "closed") {
+          bgmBuffers.set(track, buffer);
+          if (bgmTrack === track) {
+            startBackgroundMusic(context, track);
+          }
+        }
+      })
+      .catch(() => {
+        // Missing or invalid music is silent and never blocks the game.
+      })
+      .finally(() => {
+        if (bgmDecodePromises.get(track) === decodePromise) {
+          bgmDecodePromises.delete(track);
+        }
+      });
+    bgmDecodePromises.set(track, decodePromise);
+    return decodePromise;
+  }
+
+  function preloadBackgroundMusic(track = bgmTrack) {
+    const definition = BGM_DEFINITIONS[track];
+    if (!definition) {
+      return Promise.resolve();
+    }
+    if (bgmLoadPromises.has(track)) {
+      return bgmLoadPromises.get(track);
+    }
+
+    if (typeof window.fetch !== "function") {
+      const noFetchPromise = Promise.resolve();
+      bgmLoadPromises.set(track, noFetchPromise);
+      return noFetchPromise;
+    }
+
+    const loadPromise = (async () => {
+      try {
+        const response = await window.fetch(
+          new URL(definition.path, import.meta.url),
+        );
+        if (!response.ok) {
+          return;
+        }
+        const bytes = await response.arrayBuffer();
+        bgmEncodedData.set(track, bytes);
+        const context = audioContext;
+        if (context && context.state !== "closed") {
+          await decodeBackgroundMusic(context, track);
+        }
+      } catch {
+        // Missing music is silent and never blocks the game.
+      }
+    })();
+    bgmLoadPromises.set(track, loadPromise);
+    return loadPromise;
+  }
+
+  function primeSoundEffects() {
+    if (!soundEnabled) {
+      return;
+    }
+    const context = getAudioContext({ resume: true });
+    if (!context) {
+      return;
+    }
+    void decodeAvailableSoundEffects(context);
+    void preloadSoundEffects().then(() => decodeAvailableSoundEffects(context));
+  }
+
+  function primeAudio() {
+    const context = getAudioContext({ resume: true });
+    if (!context) {
+      return;
+    }
+    if (soundEnabled) {
+      void decodeAvailableSoundEffects(context);
+      void preloadSoundEffects().then(() => decodeAvailableSoundEffects(context));
+    }
+    const track = bgmTrack;
+    if (musicEnabled && track) {
+      void decodeBackgroundMusic(context, track);
+      void preloadBackgroundMusic(track)
+        .then(() => decodeBackgroundMusic(context, track));
+      startBackgroundMusic(context, track);
+    }
+  }
+
+  function retireSoundSource(record) {
+    activeSfxSources.delete(record);
+    if (record.group === "press") {
+      const index = activePressSources.indexOf(record);
+      if (index >= 0) {
+        activePressSources.splice(index, 1);
+      }
+    }
+    if (record.group === "dialogue") {
+      const index = activeDialogueSources.indexOf(record);
+      if (index >= 0) {
+        activeDialogueSources.splice(index, 1);
+      }
+    }
+  }
+
+  function stopSoundSource(record) {
+    retireSoundSource(record);
     try {
-      const context = getAudioContext();
-      if (!context) {
-        return;
+      record.source.stop();
+    } catch {
+      // The source may already have ended.
+    }
+  }
+
+  function stopAllSoundEffects() {
+    for (const record of Array.from(activeSfxSources)) {
+      stopSoundSource(record);
+    }
+    lastDialogueBlipAt = Number.NEGATIVE_INFINITY;
+  }
+
+  function stopDialogueBlips() {
+    for (const record of Array.from(activeDialogueSources)) {
+      stopSoundSource(record);
+    }
+    lastDialogueBlipAt = Number.NEGATIVE_INFINITY;
+  }
+
+  function updateSfxMasterGain() {
+    if (!audioContext || !sfxMasterGain || audioContext.state === "closed") {
+      return;
+    }
+    try {
+      sfxMasterGain.gain.setValueAtTime(
+        soundEnabled ? SFX_MASTER_GAIN : 0,
+        audioContext.currentTime,
+      );
+    } catch {
+      // Audio preference remains valid even if the context disappears.
+    }
+  }
+
+  function cancelBgmStopTimer() {
+    if (bgmStopTimer !== null) {
+      window.clearTimeout(bgmStopTimer);
+      bgmStopTimer = null;
+    }
+  }
+
+  function normalizedBgmOffset(
+    track = activeBgmTrack || bgmTrack,
+    offset = bgmOffsets.get(track) || 0,
+  ) {
+    const buffer = bgmBuffers.get(track);
+    if (!buffer || !Number.isFinite(buffer.duration) || buffer.duration <= 0) {
+      return 0;
+    }
+    return ((offset % buffer.duration) + buffer.duration) % buffer.duration;
+  }
+
+  function currentBgmOffset() {
+    const track = activeBgmTrack || bgmTrack;
+    if (!activeBgmSource || !audioContext || !activeBgmTrack) {
+      return normalizedBgmOffset(track);
+    }
+    return normalizedBgmOffset(
+      activeBgmTrack,
+      audioContext.currentTime - bgmStartedAt,
+    );
+  }
+
+  function stopBackgroundMusic({ preserveOffset = false } = {}) {
+    cancelBgmStopTimer();
+    const source = activeBgmSource;
+    const stoppedTrack = activeBgmTrack;
+    if (stoppedTrack) {
+      bgmOffsets.set(stoppedTrack, preserveOffset ? currentBgmOffset() : 0);
+    }
+    activeBgmSource = null;
+    activeBgmTrack = null;
+    bgmStartedAt = 0;
+
+    if (bgmMasterGain && audioContext?.state !== "closed") {
+      try {
+        const now = audioContext.currentTime;
+        bgmMasterGain.gain.cancelScheduledValues(now);
+        bgmMasterGain.gain.setValueAtTime(0, now);
+      } catch {
+        // Music remains stopped even if gain automation is unavailable.
+      }
+    }
+
+    if (!source) {
+      return;
+    }
+    source.onended = null;
+    try {
+      source.stop();
+    } catch {
+      // The source may already have ended.
+    }
+    try {
+      source.disconnect();
+    } catch {
+      // A disconnected source is already silent.
+    }
+  }
+
+  function startBackgroundMusic(context = audioContext, track = bgmTrack) {
+    const definition = BGM_DEFINITIONS[track];
+    const buffer = bgmBuffers.get(track);
+    if (
+      !musicEnabled
+      || !bgmShouldPlay
+      || bgmTrack !== track
+      || document.hidden
+      || !context
+      || context !== audioContext
+      || context.state === "closed"
+      || !bgmMasterGain
+      || !definition
+      || !buffer
+      || activeBgmSource
+    ) {
+      return false;
+    }
+
+    try {
+      cancelBgmStopTimer();
+      const source = context.createBufferSource();
+      const offset = normalizedBgmOffset(track);
+      const now = context.currentTime;
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(bgmMasterGain);
+      source.onended = () => {
+        if (activeBgmSource === source) {
+          activeBgmSource = null;
+          activeBgmTrack = null;
+          bgmStartedAt = 0;
+        }
+        try {
+          source.disconnect();
+        } catch {
+          // A disconnected source needs no cleanup.
+        }
+      };
+      activeBgmSource = source;
+      activeBgmTrack = track;
+      bgmStartedAt = now - offset;
+      bgmMasterGain.gain.cancelScheduledValues(now);
+      bgmMasterGain.gain.setValueAtTime(0, now);
+      bgmMasterGain.gain.linearRampToValueAtTime(
+        definition.gain,
+        now + (BGM_FADE_IN_MS / 1_000),
+      );
+      source.start(0, offset);
+      return true;
+    } catch {
+      activeBgmSource = null;
+      activeBgmTrack = null;
+      bgmStartedAt = 0;
+      return false;
+    }
+  }
+
+  function activateBackgroundMusic(track) {
+    if (!BGM_DEFINITIONS[track]) {
+      return false;
+    }
+    bgmShouldPlay = true;
+    if (bgmTrack !== track) {
+      stopBackgroundMusic();
+      bgmTrack = track;
+      bgmOffsets.set(track, 0);
+    }
+    void preloadBackgroundMusic(track);
+    if (audioContext && audioContext.state !== "closed") {
+      void decodeBackgroundMusic(audioContext, track);
+      startBackgroundMusic(audioContext, track);
+    }
+    return true;
+  }
+
+  function fadeOutBackgroundMusic(durationMs) {
+    bgmShouldPlay = false;
+    if (bgmTrack) {
+      bgmOffsets.set(bgmTrack, 0);
+    }
+    cancelBgmStopTimer();
+    if (!activeBgmSource || !audioContext || !bgmMasterGain) {
+      stopBackgroundMusic();
+      return;
+    }
+
+    try {
+      const now = audioContext.currentTime;
+      const stopAt = now + (durationMs / 1_000);
+      bgmMasterGain.gain.cancelScheduledValues(now);
+      bgmMasterGain.gain.setValueAtTime(bgmMasterGain.gain.value, now);
+      bgmMasterGain.gain.linearRampToValueAtTime(0, stopAt);
+      bgmStopTimer = window.setTimeout(() => {
+        bgmStopTimer = null;
+        stopBackgroundMusic();
+      }, durationMs);
+    } catch {
+      stopBackgroundMusic();
+    }
+  }
+
+  function duckBackgroundMusic() {
+    if (
+      !musicEnabled
+      || !activeBgmSource
+      || !audioContext
+      || !bgmMasterGain
+      || audioContext.state === "closed"
+    ) {
+      return;
+    }
+
+    try {
+      const now = audioContext.currentTime;
+      const attackAt = now + (BGM_DUCK_ATTACK_MS / 1_000);
+      const releaseAt = attackAt + (BGM_DUCK_HOLD_MS / 1_000);
+      const restoredAt = releaseAt + (BGM_DUCK_RELEASE_MS / 1_000);
+      const restoredGain = BGM_DEFINITIONS[activeBgmTrack]?.gain
+        ?? BGM_MASTER_GAIN;
+      bgmMasterGain.gain.cancelScheduledValues(now);
+      bgmMasterGain.gain.setValueAtTime(bgmMasterGain.gain.value, now);
+      bgmMasterGain.gain.linearRampToValueAtTime(BGM_DUCK_GAIN, attackAt);
+      bgmMasterGain.gain.setValueAtTime(BGM_DUCK_GAIN, releaseAt);
+      bgmMasterGain.gain.linearRampToValueAtTime(restoredGain, restoredAt);
+    } catch {
+      // A missed duck never delays victim finalization.
+    }
+  }
+
+  function startSoundEffect(context, name, definition, buffer) {
+    if (
+      !soundEnabled
+      || audioContext !== context
+      || context.state === "closed"
+    ) {
+      return false;
+    }
+
+    try {
+      if (definition.group === "press") {
+        while (activePressSources.length >= SFX_PRESS_VOICE_LIMIT) {
+          stopSoundSource(activePressSources[0]);
+        }
+      }
+
+      const source = context.createBufferSource();
+      const gainNode = context.createGain();
+      const record = { source, gainNode, group: definition.group };
+      source.buffer = buffer;
+      gainNode.gain.setValueAtTime(definition.gain, context.currentTime);
+      source.connect(gainNode).connect(sfxMasterGain);
+      source.onended = () => {
+        retireSoundSource(record);
+        source.disconnect();
+        gainNode.disconnect();
+      };
+      activeSfxSources.add(record);
+      if (record.group === "press") {
+        activePressSources.push(record);
+      }
+      source.start();
+      return true;
+    } catch {
+      // Audio feedback is optional and never blocks gameplay.
+      return false;
+    }
+  }
+
+  function startDialogueBlip(context, voice) {
+    if (
+      voice !== "elegant-demon"
+      || !soundEnabled
+      || dialogueBlipVolume <= 0
+      || audioContext !== context
+      || context.state !== "running"
+      || !sfxMasterGain
+    ) {
+      return false;
+    }
+
+    try {
+      while (activeDialogueSources.length >= DIALOGUE_BLIP_VOICE_LIMIT) {
+        stopSoundSource(activeDialogueSources[0]);
       }
 
       const now = context.currentTime;
-      const noise = context.createBufferSource();
-      const noiseFilter = context.createBiquadFilter();
-      const noiseGain = context.createGain();
-      noise.buffer = getClickNoiseBuffer(context);
-      noiseFilter.type = "bandpass";
-      noiseFilter.frequency.setValueAtTime(enhanced ? 2_600 : 1_850, now);
-      noiseFilter.Q.setValueAtTime(0.72, now);
-      noiseGain.gain.setValueAtTime(enhanced ? 0.052 : 0.042, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.038);
-      noise.connect(noiseFilter).connect(noiseGain).connect(context.destination);
-      noise.start(now);
-      noise.stop(now + 0.04);
+      const attackAt = now + (DIALOGUE_BLIP_PROFILE.attackMs / 1_000);
+      const sustainAt = now + (DIALOGUE_BLIP_PROFILE.sustainMs / 1_000);
+      const releaseAt = now + (DIALOGUE_BLIP_PROFILE.releaseMs / 1_000);
+      const stopAt = now + (DIALOGUE_BLIP_PROFILE.durationMs / 1_000);
+      const oscillator = context.createOscillator();
+      const filterNode = context.createBiquadFilter();
+      const gainNode = context.createGain();
+      const detune = DIALOGUE_BLIP_PROFILE.detuneCents[
+        dialogueBlipSequence % DIALOGUE_BLIP_PROFILE.detuneCents.length
+      ];
+      const record = {
+        source: oscillator,
+        filterNode,
+        gainNode,
+        group: "dialogue",
+      };
 
-      const switchTone = context.createOscillator();
-      const switchGain = context.createGain();
-      switchTone.type = enhanced ? "square" : "triangle";
-      switchTone.frequency.setValueAtTime(enhanced ? 620 : 280, now);
-      switchTone.frequency.exponentialRampToValueAtTime(
-        enhanced ? 110 : 72,
-        now + 0.045,
+      oscillator.type = DIALOGUE_BLIP_PROFILE.oscillatorType;
+      oscillator.frequency.setValueAtTime(
+        DIALOGUE_BLIP_PROFILE.startFrequencyHz,
+        now,
       );
-      switchGain.gain.setValueAtTime(enhanced ? 0.018 : 0.014, now);
-      switchGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.048);
-      switchTone.connect(switchGain).connect(context.destination);
-      switchTone.start(now);
-      switchTone.stop(now + 0.05);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        DIALOGUE_BLIP_PROFILE.endFrequencyHz,
+        releaseAt,
+      );
+      oscillator.detune.setValueAtTime(detune, now);
+      filterNode.type = "lowpass";
+      filterNode.frequency.setValueAtTime(
+        DIALOGUE_BLIP_PROFILE.lowpassFrequencyHz,
+        now,
+      );
+      filterNode.Q.setValueAtTime(DIALOGUE_BLIP_PROFILE.lowpassQ, now);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.linearRampToValueAtTime(
+        DIALOGUE_BLIP_PROFILE.peakGain * dialogueBlipVolume,
+        attackAt,
+      );
+      gainNode.gain.linearRampToValueAtTime(
+        DIALOGUE_BLIP_PROFILE.sustainGain * dialogueBlipVolume,
+        sustainAt,
+      );
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, releaseAt);
+      oscillator.connect(filterNode).connect(gainNode).connect(sfxMasterGain);
+      oscillator.onended = () => {
+        retireSoundSource(record);
+        oscillator.disconnect();
+        filterNode.disconnect();
+        gainNode.disconnect();
+      };
+      activeSfxSources.add(record);
+      activeDialogueSources.push(record);
+      dialogueBlipSequence += 1;
+      oscillator.start(now);
+      oscillator.stop(stopAt);
+      return true;
     } catch {
-      // Audio feedback is optional and never blocks a press.
+      // Character voice is optional and never delays the dialogue.
+      return false;
+    }
+  }
+
+  function playDialogueBlip(voice, character) {
+    if (
+      voice !== "elegant-demon"
+      || !soundEnabled
+      || !isDialogueBlipCharacter(character)
+    ) {
+      return false;
+    }
+
+    const now = performance.now();
+    if (now - lastDialogueBlipAt < DIALOGUE_BLIP_INTERVAL_MS) {
+      return false;
+    }
+    if (
+      !audioContext
+      || !sfxMasterGain
+      || audioContext.state !== "running"
+    ) {
+      return false;
+    }
+    if (!startDialogueBlip(audioContext, voice)) {
+      return false;
+    }
+    lastDialogueBlipAt = now;
+    return true;
+  }
+
+  function playSoundEffect(name) {
+    if (!soundEnabled) {
+      return false;
+    }
+
+    const definition = SFX_DEFINITIONS[name];
+    const context = getAudioContext();
+    const buffer = sfxBuffers.get(name);
+    if (!definition || !context || !sfxMasterGain || !buffer) {
+      primeSoundEffects();
+      return false;
+    }
+
+    if (context.state !== "running") {
+      void context.resume()
+        .then(() => startSoundEffect(context, name, definition, buffer))
+        .catch(() => false);
+      return true;
+    }
+    return startSoundEffect(context, name, definition, buffer);
+  }
+
+  function playUiAdvance() {
+    return playSoundEffect("uiAdvance");
+  }
+
+  function renderSoundToggle() {
+    elements.soundToggle.textContent = soundEnabled
+      ? "[ 효과음: 켬 ]"
+      : "[ 효과음: 끔 ]";
+    elements.soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+  }
+
+  function renderDialogueBlipVolume() {
+    const percentage = Math.round(dialogueBlipVolume * 100);
+    elements.dialogueBlipVolume.value = String(percentage);
+    elements.dialogueBlipVolumeValue.textContent = `${percentage}%`;
+    elements.dialogueBlipVolume.setAttribute("aria-valuetext", `${percentage}%`);
+  }
+
+  function renderMusicToggle() {
+    elements.musicToggle.textContent = musicEnabled
+      ? "[ 음악: 켬 ]"
+      : "[ 음악: 끔 ]";
+    elements.musicToggle.setAttribute("aria-pressed", String(musicEnabled));
+  }
+
+  function persistSoundPreference() {
+    if (!soundPreferenceAvailable) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(SFX_PREFERENCE_KEY, soundEnabled ? "1" : "0");
+    } catch {
+      soundPreferenceAvailable = false;
+    }
+  }
+
+  function persistDialogueBlipVolume() {
+    if (!dialogueBlipVolumePreferenceAvailable) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(
+        DIALOGUE_BLIP_VOLUME_KEY,
+        String(dialogueBlipVolume),
+      );
+    } catch {
+      dialogueBlipVolumePreferenceAvailable = false;
+    }
+  }
+
+  function persistMusicPreference() {
+    if (!musicPreferenceAvailable) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(BGM_PREFERENCE_KEY, musicEnabled ? "1" : "0");
+    } catch {
+      musicPreferenceAvailable = false;
+    }
+  }
+
+  function onSoundToggle() {
+    soundEnabled = !soundEnabled;
+    renderSoundToggle();
+    updateSfxMasterGain();
+    persistSoundPreference();
+    if (!soundEnabled) {
+      stopAllSoundEffects();
+      return;
+    }
+    primeSoundEffects();
+  }
+
+  function onDialogueBlipVolumeInput() {
+    const percentage = Number(elements.dialogueBlipVolume.value);
+    if (!Number.isFinite(percentage)) {
+      return;
+    }
+    dialogueBlipVolume = Math.min(
+      Math.max(percentage / 100, DIALOGUE_BLIP_VOLUME_MIN),
+      DIALOGUE_BLIP_VOLUME_MAX,
+    );
+    renderDialogueBlipVolume();
+    persistDialogueBlipVolume();
+    primeAudio();
+    playDialogueBlip("elegant-demon", "아");
+  }
+
+  function onMusicToggle() {
+    musicEnabled = !musicEnabled;
+    renderMusicToggle();
+    persistMusicPreference();
+    if (!musicEnabled) {
+      stopBackgroundMusic({ preserveOffset: true });
+      return;
+    }
+    primeAudio();
+  }
+
+  function playRouletteLock(now) {
+    if (
+      reducedMotion.matches
+      || now - lastRouletteLockAt < SFX_ROULETTE_INTERVAL_MS
+    ) {
+      return;
+    }
+    if (playSoundEffect("rouletteLock")) {
+      lastRouletteLockAt = now;
     }
   }
 
@@ -1087,7 +2857,11 @@ function initializeGame() {
   }
 
   function playButtonFeedback(progression) {
-    playSwitchClick(progression.enhancedSwitchToneUnlocked);
+    playSoundEffect(
+      progression.enhancedSwitchToneUnlocked
+        ? "switchPressHeavy"
+        : "switchPress",
+    );
     vibrateButton();
 
     if (reducedMotion.matches) {
@@ -1314,12 +3088,25 @@ function initializeGame() {
     }
   }
 
+  function completeRollBatch(batch) {
+    if (!batch || batch.remaining <= 0) {
+      return;
+    }
+    batch.remaining -= 1;
+    if (batch.remaining === 0 && !batch.latchPlayed) {
+      batch.latchPlayed = true;
+      duckBackgroundMusic();
+      playSoundEffect("resultLatch");
+    }
+  }
+
   function finishRoll(roll) {
     if (!activeRolls.has(roll)) {
       return;
     }
     activeRolls.delete(roll);
     finishEntry(roll.entry, roll.victim, roll.sequence, roll.name);
+    completeRollBatch(roll.batch);
     stopRollTimerIfIdle();
   }
 
@@ -1331,6 +3118,7 @@ function initializeGame() {
       if (elapsed >= locationStop) {
         roll.entry.location.textContent = locationLabel(roll.victim.locationCode);
         roll.fixed[0] = true;
+        playRouletteLock(now);
       } else {
         roll.entry.location.textContent = randomLocationText();
       }
@@ -1339,6 +3127,7 @@ function initializeGame() {
       if (elapsed >= nameStop) {
         roll.entry.name.textContent = roll.name;
         roll.fixed[1] = true;
+        playRouletteLock(now);
       } else {
         roll.entry.name.textContent = SYNTHETIC_NAMES[
           Math.floor(rng() * SYNTHETIC_NAMES.length)
@@ -1349,6 +3138,7 @@ function initializeGame() {
       if (elapsed >= ageStop) {
         roll.entry.age.textContent = ageDisplay(roll.victim.age);
         roll.fixed[2] = true;
+        playRouletteLock(now);
       } else {
         roll.entry.age.textContent = ageDisplay(Math.floor(rng() * 101));
       }
@@ -1357,6 +3147,7 @@ function initializeGame() {
       if (elapsed >= sexStop) {
         setSexDisplay(roll.entry.sex, roll.victim.sex);
         roll.fixed[3] = true;
+        playRouletteLock(now);
       } else {
         setSexDisplay(roll.entry.sex, rng() < 0.5 ? "male" : "female");
       }
@@ -1365,6 +3156,7 @@ function initializeGame() {
       if (elapsed >= causeStop) {
         setCauseDisplay(roll.entry.cause, roll.victim);
         roll.fixed[4] = true;
+        playRouletteLock(now);
       } else {
         setRandomCauseDisplay(roll.entry.cause);
       }
@@ -1388,7 +3180,7 @@ function initializeGame() {
     }
   }
 
-  function startRoll(victim, sequence, progression, slot = 0) {
+  function startRoll(victim, sequence, progression, slot, batch) {
     const entry = createLogEntry();
     const name = syntheticNameFor(victim, sequence, slot);
 
@@ -1398,7 +3190,10 @@ function initializeGame() {
       entry.age.textContent = "결정 중…";
       entry.sex.textContent = "결정 중…";
       entry.cause.textContent = "결정 중…";
-      window.setTimeout(() => finishEntry(entry, victim, sequence, name), 250);
+      window.setTimeout(() => {
+        finishEntry(entry, victim, sequence, name);
+        completeRollBatch(batch);
+      }, 250);
       return;
     }
 
@@ -1410,6 +3205,7 @@ function initializeGame() {
       startedAt: performance.now(),
       fixed: [false, false, false, false, false],
       stopTimes: rouletteStopTimes(progression.rouletteDurationMs),
+      batch,
     };
     activeRolls.add(roll);
     tickRoll(roll, roll.startedAt);
@@ -1418,9 +3214,16 @@ function initializeGame() {
 
   function onVisibility() {
     if (document.hidden) {
+      cancelOpeningTextPress();
+      resetOpeningParallax();
+      finishSceneTransition();
+      completeOpeningTyping();
+      stopDialogueBlips();
+      stopBackgroundMusic({ preserveOffset: true });
       releaseSpaceKey();
       return;
     }
+    primeAudio();
     tickActiveRolls();
   }
 
@@ -1444,7 +3247,24 @@ function initializeGame() {
     if (
       event.target === elements.ethicsAccept
       || event.target === elements.ethicsReject
+      || event.target === elements.openingAdvance
+      || event.target === elements.musicToggle
+      || event.target === elements.soundToggle
+      || elements.setupScreen.contains(event.target)
+      || isEditableTarget(event.target)
     ) {
+      return;
+    }
+    if (isOpeningDialogueActive()) {
+      event.preventDefault();
+      if (!event.repeat) {
+        triggerOpeningTextAdvance();
+      }
+      return;
+    }
+    if (isSceneTransitioning()) {
+      event.preventDefault();
+      releaseSpaceKey();
       return;
     }
     if (!gameStarted) {
@@ -1479,7 +3299,12 @@ function initializeGame() {
       event.code !== "Space"
       || event.target === elements.ethicsAccept
       || event.target === elements.ethicsReject
+      || event.target === elements.openingAdvance
       || event.target === elements.processingUpgrade
+      || event.target === elements.musicToggle
+      || event.target === elements.soundToggle
+      || elements.setupScreen.contains(event.target)
+      || isEditableTarget(event.target)
     ) {
       return;
     }
@@ -1494,12 +3319,30 @@ function initializeGame() {
     releaseSpaceKey();
   }
 
+  function onButtonKeyDown(event) {
+    if (event.key === "Enter" && event.repeat) {
+      event.preventDefault();
+    }
+  }
+
   function releaseSpaceKey() {
     elements.button.classList.remove("is-key-active");
   }
 
+  function onWindowBlur() {
+    cancelOpeningTextPress();
+    resetOpeningParallax();
+    completeOpeningTyping();
+    stopDialogueBlips();
+    releaseSpaceKey();
+  }
+
   function onPurchaseProcessingOptimization() {
-    if (!gameStarted || !canPurchaseProcessingOptimization(state)) {
+    if (
+      isSceneTransitioning()
+      || !gameStarted
+      || !canPurchaseProcessingOptimization(state)
+    ) {
       renderProcessingUpgrade();
       return;
     }
@@ -1528,7 +3371,7 @@ function initializeGame() {
   }
 
   function onPress() {
-    if (!gameStarted) {
+    if (isSceneTransitioning() || !gameStarted) {
       return;
     }
     if (state.presses >= MAX_PRESSES) {
@@ -1557,8 +3400,18 @@ function initializeGame() {
       renderProcessingUpgrade();
       renderGoal(nextProgression);
       const firstSequence = state.processed - victims.length + 1;
+      const rollBatch = {
+        remaining: victims.length,
+        latchPlayed: false,
+      };
       victims.forEach((victim, slot) => {
-        startRoll(victim, firstSequence + slot, nextProgression, slot);
+        startRoll(
+          victim,
+          firstSequence + slot,
+          nextProgression,
+          slot,
+          rollBatch,
+        );
       });
       if (
         nextProgression.unlockedRewardCount
@@ -1580,9 +3433,40 @@ function initializeGame() {
   const initialProgression = progressionForPresses(state.presses);
   renderUnlocks(initialProgression);
   renderGoal(initialProgression);
-  initializeEthicsFlow();
+  renderMusicToggle();
+  renderSoundToggle();
+  renderDialogueBlipVolume();
+  void preloadSoundEffects();
+  void Promise.all(Object.keys(BGM_DEFINITIONS).map(preloadBackgroundMusic));
+  initializeOpeningFlow();
 
   elements.button.addEventListener("click", onPress);
+  elements.button.addEventListener("keydown", onButtonKeyDown);
+  elements.musicToggle.addEventListener("click", onMusicToggle);
+  elements.soundToggle.addEventListener("click", onSoundToggle);
+  elements.dialogueBlipVolume.addEventListener(
+    "input",
+    onDialogueBlipVolumeInput,
+  );
+  elements.languageKorean.addEventListener("click", chooseLanguage);
+  elements.languageKorean.addEventListener("keydown", onSetupActionKeyDown);
+  elements.profileMale.addEventListener(
+    "click",
+    () => chooseProfile("male"),
+  );
+  elements.profileFemale.addEventListener(
+    "click",
+    () => chooseProfile("female"),
+  );
+  elements.profileMale.addEventListener("keydown", onSetupActionKeyDown);
+  elements.profileFemale.addEventListener("keydown", onSetupActionKeyDown);
+  elements.setupNameForm.addEventListener("submit", onSetupNameSubmit);
+  elements.playerNameInput.addEventListener("keydown", onPlayerNameKeyDown);
+  elements.nameConfirm.addEventListener("keydown", onSetupActionKeyDown);
+  elements.openingAdvance.addEventListener("click", advanceOpening);
+  elements.openingAdvance.addEventListener("keydown", onOpeningActionKeyDown);
+  elements.openingMessage.addEventListener("click", onOpeningMessageClick);
+  elements.openingMessage.addEventListener("keydown", onOpeningMessageKeyDown);
   elements.ethicsAccept.addEventListener("click", acceptEthicsQuestion);
   elements.ethicsReject.addEventListener("click", rejectEthicsQuestion);
   elements.ethicsAccept.addEventListener("keydown", onEthicsDecisionKeyDown);
@@ -1595,10 +3479,15 @@ function initializeGame() {
     "keydown",
     onProcessingUpgradeKeyDown,
   );
+  window.addEventListener("pointermove", onOpeningParallaxPointerMove);
+  elements.stage.addEventListener("pointerleave", onOpeningParallaxPointerLeave);
+  document.addEventListener("pointerdown", primeAudio, { capture: true });
+  document.addEventListener("keydown", primeAudio, { capture: true });
   document.addEventListener("keydown", onSpaceKeyDown);
   document.addEventListener("keyup", onSpaceKeyUp);
   document.addEventListener("visibilitychange", onVisibility);
-  window.addEventListener("blur", releaseSpaceKey);
+  reducedMotion.addEventListener("change", onReducedMotionChange);
+  window.addEventListener("blur", onWindowBlur);
   window.setInterval(renderPopulation, 500);
 }
 

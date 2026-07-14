@@ -8,7 +8,7 @@
       name="description"
       content="버튼을 누르면 가상의 세계 인구 한 명이 줄고 100만원을 받는 블랙코미디 게임."
     >
-    <title>버튼</title>
+    <title>100만원 버튼</title>
     <style>
       @font-face {
         font-family: "Galmuri11";
@@ -48,10 +48,12 @@
         position: relative;
         isolation: isolate;
         min-width: 320px;
+        height: 100vh;
+        height: 100svh;
         min-height: 100vh;
         min-height: 100svh;
         margin: 0;
-        overflow-x: hidden;
+        overflow: hidden;
         background: var(--background);
         color: var(--foreground);
         font-family: "Galmuri11", "Apple SD Gothic Neo", system-ui, sans-serif;
@@ -96,14 +98,108 @@
         font: inherit;
       }
 
-      .status-bar {
+      .audio-controls {
         position: fixed;
+        inset: auto auto max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+        z-index: 12;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+      }
+
+      .sound-toggle {
+        padding: 0.3rem 0.2rem;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: clamp(0.58rem, 1.8vw, 0.7rem);
+        letter-spacing: 0.05em;
+        touch-action: manipulation;
+      }
+
+      .sound-toggle:hover,
+      .sound-toggle:focus-visible,
+      .sound-toggle[aria-pressed="true"]:hover {
+        color: var(--green);
+      }
+
+      .sound-toggle:focus-visible {
+        outline: 1px dotted currentColor;
+        outline-offset: 0.2rem;
+      }
+
+      .dialogue-volume {
+        display: grid;
+        grid-template-columns: auto clamp(5rem, 12vw, 8rem) 2.7rem;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.2rem;
+        color: var(--muted);
+        font-size: clamp(0.58rem, 1.8vw, 0.7rem);
+        letter-spacing: 0.05em;
+      }
+
+      .dialogue-volume__slider {
+        width: 100%;
+        accent-color: var(--green);
+        cursor: pointer;
+      }
+
+      .dialogue-volume__slider:focus-visible {
+        outline: 1px dotted var(--green);
+        outline-offset: 0.2rem;
+      }
+
+      .dialogue-volume__value {
+        min-width: 2.7rem;
+        color: var(--foreground);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      .viewport {
+        display: grid;
+        width: 100vw;
+        height: 100vh;
+        height: 100svh;
+        overflow: hidden;
+        background: var(--background);
+        place-items: center;
+      }
+
+      .stage {
+        --scene-circle-x: 25.625cqw;
+        --scene-circle-y: 3.333333cqh;
+        --scene-circle-width: 48.75cqw;
+        --scene-circle-height: 86.666667cqh;
+        --scene-speaker-y: 72.222222cqh;
+        --scene-speaker-height: 5cqh;
+        --scene-copy-y: 78.888889cqh;
+        --scene-copy-height: 7.777778cqh;
+        --scene-button-x: 37.5cqw;
+        --scene-button-y: 90cqh;
+        --scene-button-width: 25cqw;
+        --scene-button-height: 7.777778cqh;
+        position: relative;
+        isolation: isolate;
+        width: min(100vw, 177.777778svh);
+        height: min(100svh, 56.25vw);
+        overflow: hidden;
+        background: var(--background);
+        container-name: game-stage;
+        container-type: size;
+      }
+
+      .status-bar {
+        position: absolute;
         inset: 0 0 auto;
         z-index: 5;
         display: flex;
         justify-content: space-between;
-        gap: 1rem;
-        padding: clamp(1rem, 3vw, 1.8rem);
+        gap: 1.25cqw;
+        padding: 2.5cqh 2.5cqw;
         pointer-events: none;
       }
 
@@ -118,58 +214,79 @@
 
       .status__label {
         display: block;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.5cqh;
         color: var(--muted);
-        font-size: clamp(0.68rem, 2vw, 0.78rem);
+        font-size: 0.9375cqw;
         letter-spacing: 0.04em;
       }
 
       .status__value {
         display: block;
         overflow: hidden;
-        font-size: clamp(0.92rem, 3.2vw, 1.28rem);
+        font-size: 1.40625cqw;
         text-overflow: ellipsis;
-        text-shadow: 0 0 0.45rem rgba(242, 245, 239, 0.2);
+        text-shadow: 0 0 0.625cqw rgba(242, 245, 239, 0.2);
         white-space: nowrap;
       }
 
       .status__progress {
         display: block;
         min-height: 1.3em;
-        margin-top: 0.3rem;
+        margin-top: 0.416667cqh;
         color: var(--muted);
-        font-size: clamp(0.58rem, 1.8vw, 0.68rem);
+        font-size: 0.78125cqw;
         letter-spacing: 0.04em;
       }
 
       .status.is-complete .status__value {
         color: var(--green);
-        text-shadow: 0 0 0.5rem rgba(84, 223, 121, 0.28);
+        text-shadow: 0 0 0.625cqw rgba(84, 223, 121, 0.28);
       }
 
       .game {
+        position: absolute;
+        inset: 0;
         display: flex;
-        width: min(100%, 64rem);
-        min-height: 100vh;
-        min-height: 100svh;
-        margin: 0 auto;
-        padding: clamp(6.8rem, 15vh, 8.5rem) clamp(0.9rem, 5vw, 3rem) 7rem;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
       }
 
       .game__content {
+        position: relative;
         display: flex;
         width: 100%;
-        min-height: calc(100svh - 13.8rem);
+        height: 100%;
+        min-height: 0;
         min-width: 0;
+        padding: 15cqh 3.75cqw 9.722222cqh;
         flex-direction: column;
         align-items: center;
         text-align: center;
       }
 
+      body.is-scene-transitioning .game__content {
+        pointer-events: none;
+      }
+
+      body.is-scene-exiting .game__content,
+      body.is-scene-exiting .status-bar {
+        animation: scene-dissolve-out 180ms steps(4, end) both;
+        will-change: opacity, filter;
+      }
+
+      body.is-scene-entering .game__content,
+      body.is-scene-entering .status-bar {
+        animation: scene-dissolve-in 180ms steps(4, end) both;
+        will-change: opacity, filter;
+      }
+
       .focus-stage {
+        position: static;
         display: grid;
         width: 100%;
-        min-height: clamp(8.2rem, 24vh, 11.8rem);
+        min-height: 26.111111cqh;
         place-items: center;
       }
 
@@ -177,22 +294,512 @@
         grid-area: 1 / 1;
       }
 
-      .subtitle {
+      .setup-screen {
+        position: absolute;
+        inset: 0;
         display: grid;
         width: 100%;
-        min-height: 7.2rem;
-        margin: 0;
+        height: 100%;
+        padding: 8cqh 7.5cqw;
+        overflow-y: auto;
         align-content: center;
+        justify-items: center;
+        overscroll-behavior: contain;
+        row-gap: 2.222222cqh;
+        scroll-padding-block: 20cqh;
+      }
+
+      .setup-title {
+        max-width: 52.5cqw;
+        margin: 0;
         color: var(--foreground);
-        font-size: clamp(1.05rem, 4.5vw, 1.9rem);
+        font-size: 2.03125cqw;
         letter-spacing: 0.04em;
         line-height: 1.6;
-        text-shadow: 0 0 0.55rem rgba(242, 245, 239, 0.2);
+        text-shadow: 0 0 0.6875cqw rgba(242, 245, 239, 0.2);
         text-wrap: balance;
       }
 
-      .subtitle.is-dissolving,
-      .ethics-prompt.is-dissolving,
+      .setup-step,
+      .name-form {
+        display: grid;
+        justify-items: center;
+        row-gap: 1.527778cqh;
+      }
+
+      .setup-detail,
+      .name-hint,
+      .name-error {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9375cqw;
+        letter-spacing: 0.05em;
+        line-height: 1.6;
+      }
+
+      .name-error {
+        color: var(--red);
+      }
+
+      .profile-options {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.875cqw;
+      }
+
+      .profile-option {
+        display: grid;
+        padding: 0.3125cqw;
+        border: 0;
+        background: transparent;
+        color: var(--foreground);
+        cursor: pointer;
+        justify-items: center;
+        row-gap: 0.972222cqh;
+      }
+
+      .profile-option:focus-visible {
+        outline: 1px dotted currentColor;
+        outline-offset: 0.25cqw;
+      }
+
+      .profile-art,
+      .player-avatar {
+        background-image: url("./assets/profile-options.png");
+        background-position: left center;
+        background-repeat: no-repeat;
+        background-size: 200% 100%;
+      }
+
+      .profile-art {
+        width: 12.5cqw;
+        aspect-ratio: 1;
+        filter: contrast(1.08);
+        opacity: 0.72;
+        transition: opacity 100ms steps(2, end), filter 100ms steps(2, end);
+      }
+
+      .profile-option[data-profile="female"] .profile-art,
+      .player-avatar.is-female {
+        background-position: right center;
+      }
+
+      .profile-option:hover .profile-art,
+      .profile-option:focus-visible .profile-art {
+        filter: contrast(1.16) brightness(1.08);
+        opacity: 1;
+      }
+
+      .profile-option__label {
+        font-size: 1cqw;
+        letter-spacing: 0.06em;
+      }
+
+      .player-name-input {
+        width: 22.5cqw;
+        padding: 1.111111cqh 0.4375cqw;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        outline: 0;
+        background: transparent;
+        color: var(--foreground);
+        font: inherit;
+        font-size: 1.40625cqw;
+        letter-spacing: 0.06em;
+        text-align: center;
+      }
+
+      .player-name-input:focus {
+        border-bottom-color: var(--green);
+        box-shadow: 0 0.486111cqh 0.8125cqw -0.75cqw rgba(84, 223, 121, 0.85);
+      }
+
+      .opening-screen {
+        --opening-room-shift-x: 0cqw;
+        --opening-room-shift-y: 0cqh;
+        --opening-demon-shift-x: 0cqw;
+        --opening-demon-shift-y: 0cqh;
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .opening-visual {
+        position: absolute;
+        z-index: 0;
+        top: var(--scene-circle-y);
+        left: var(--scene-circle-x);
+        display: none;
+        isolation: isolate;
+        width: var(--scene-circle-width);
+        height: var(--scene-circle-height);
+        border: 2px solid rgba(116, 122, 127, 0.72);
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--background);
+        box-shadow:
+          inset 0 0 0 0.4375cqw rgba(198, 204, 209, 0.08),
+          0 0.902778cqh 0 #181a1c,
+          0 1.388889cqh 2.5cqw rgba(0, 0, 0, 0.72);
+        pointer-events: none;
+        scale: 1.5;
+      }
+
+      .opening-screen.is-dialogue:not([data-opening-visual="none"]) .opening-visual {
+        display: block;
+      }
+
+      .opening-screen.is-dialogue:not([data-opening-visual="none"]) .opening-visual::after {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 0 34%,
+          rgba(0, 0, 0, 0.42) 52%,
+          rgba(0, 0, 0, 0.72) 100%
+        );
+        content: "";
+      }
+
+      .opening-visual__room,
+      .opening-visual__demon,
+      .opening-demon-frame {
+        position: absolute;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .opening-visual__room {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 58%;
+        opacity: 0;
+        transform: scale(1.06);
+        translate: var(--opening-room-shift-x) var(--opening-room-shift-y);
+        transition:
+          opacity 260ms linear,
+          transform 480ms steps(6, end),
+          translate 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        will-change: transform, translate;
+      }
+
+      .opening-visual__demon {
+        z-index: 1;
+        top: -3.472222cqh;
+        right: -2.34375cqw;
+        width: 44.84375cqw;
+        height: 117.866667cqh;
+        filter: grayscale(1);
+        opacity: 0;
+        scale: 0.8;
+        translate: var(--opening-demon-shift-x) var(--opening-demon-shift-y);
+        transform-origin: center;
+        transition:
+          opacity 260ms linear,
+          translate 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        will-change: translate;
+      }
+
+      .opening-demon-frame {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: right top;
+        opacity: 0;
+        will-change: opacity;
+      }
+
+      .opening-demon-frame--idle-0 {
+        opacity: 1;
+      }
+
+      .opening-demon-frame--idle-1 {
+        animation: opening-demon-idle-frame-1 5.6s steps(1, end) infinite;
+      }
+
+      .opening-demon-frame--idle-2 {
+        animation: opening-demon-idle-frame-2 5.6s steps(1, end) infinite;
+      }
+
+      .opening-demon-frame--blink-half {
+        z-index: 2;
+        animation: opening-demon-blink-half 6.4s steps(1, end) infinite;
+      }
+
+      .opening-demon-frame--blink-closed {
+        z-index: 3;
+        animation: opening-demon-blink-closed 6.4s steps(1, end) infinite;
+      }
+
+      [data-opening-visual="demon"] .opening-visual__room {
+        opacity: 0.16;
+      }
+
+      [data-opening-visual="demon"] .opening-visual__demon {
+        opacity: 1;
+      }
+
+      [data-opening-visual="room-hint"] .opening-visual__room {
+        opacity: 0.28;
+      }
+
+      [data-opening-visual="room-hint"] .opening-visual__demon {
+        opacity: 1;
+      }
+
+      [data-opening-visual="room-reveal"] .opening-visual__room {
+        opacity: 1;
+        transform: scale(1.04);
+      }
+
+      [data-opening-visual="room-reveal"] .opening-visual__demon {
+        opacity: 1;
+      }
+
+      .opening-message {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      .player-identity {
+        position: absolute;
+        z-index: 4;
+        top: 3.333333cqh;
+        left: 2.5cqw;
+        display: flex;
+        align-items: center;
+        color: var(--muted);
+        column-gap: 0.625cqw;
+        font-size: 0.9375cqw;
+        letter-spacing: 0.06em;
+      }
+
+      .player-avatar {
+        width: 3.25cqw;
+        aspect-ratio: 1;
+        filter: contrast(1.08);
+      }
+
+      .opening-title {
+        margin: 0;
+        color: var(--foreground);
+        font-size: 5cqw;
+        letter-spacing: 0.1em;
+        line-height: 1;
+        text-indent: 0.1em;
+        text-shadow: 0 0 1.25cqw rgba(242, 245, 239, 0.28);
+        white-space: nowrap;
+      }
+
+      .opening-copy {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.25cqw;
+        letter-spacing: 0.08em;
+        line-height: 1.7;
+        text-wrap: balance;
+      }
+
+      .opening-screen.is-narrative .opening-title {
+        max-width: 52.5cqw;
+        font-size: 2.03125cqw;
+        letter-spacing: 0.04em;
+        line-height: 1.65;
+        text-indent: 0;
+      }
+
+      .opening-screen.is-narrative .opening-copy {
+        color: var(--foreground);
+        font-size: 1.40625cqw;
+        letter-spacing: 0.04em;
+        white-space: pre;
+      }
+
+      .opening-screen.is-dialogue .opening-title {
+        position: absolute;
+        top: var(--scene-speaker-y);
+        left: 0;
+        display: grid;
+        width: 100%;
+        max-width: none;
+        height: var(--scene-speaker-height);
+        margin: 0;
+        align-items: center;
+        color: var(--amber);
+        font-size: 1.5625cqw;
+        letter-spacing: 0.12em;
+        text-shadow: 0 0 0.5625cqw rgba(228, 170, 61, 0.24);
+      }
+
+      .opening-screen.is-dialogue .opening-copy {
+        position: absolute;
+        top: var(--scene-copy-y);
+        left: 10cqw;
+        display: grid;
+        width: 80cqw;
+        height: var(--scene-copy-height);
+        margin: 0;
+        overflow: hidden;
+        align-content: start;
+        font-size: 1.875cqw;
+        line-height: 1.1;
+        white-space: pre-line;
+      }
+
+      .opening-screen.is-dialogue .opening-message {
+        outline: 0;
+      }
+
+      .opening-screen.is-dialogue .opening-title,
+      .opening-screen.is-dialogue .opening-copy {
+        cursor: pointer;
+        pointer-events: auto;
+        touch-action: manipulation;
+        transition:
+          filter 80ms steps(2, end),
+          translate 80ms steps(2, end);
+        user-select: none;
+      }
+
+      .opening-screen.is-dialogue .opening-message.is-pressed .opening-title,
+      .opening-screen.is-dialogue .opening-message.is-pressed .opening-copy {
+        filter: brightness(0.72);
+        translate: 0 0.35cqh;
+      }
+
+      .opening-screen.is-dialogue .opening-message:focus-visible .opening-title,
+      .opening-screen.is-dialogue .opening-message:focus-visible .opening-copy {
+        text-shadow:
+          0 0 0.5625cqw rgba(126, 255, 159, 0.28),
+          0 0 1px var(--foreground);
+      }
+
+      .opening-screen.is-dialogue .opening-button {
+        display: none;
+      }
+
+      .opening-button {
+        min-width: 12.5cqw;
+      }
+
+      .opening-screen.is-title .opening-message {
+        inset: 20cqh 0 auto;
+        height: 10cqh;
+      }
+
+      .opening-screen.is-title .opening-button {
+        position: absolute;
+        z-index: 4;
+        top: 43.055556cqh;
+        left: 40cqw;
+        isolation: isolate;
+        width: 20cqw;
+        min-width: 0;
+        height: 37.5cqh;
+        margin: 0;
+        padding: 29.166667cqh 0 0.763889cqh;
+        overflow: visible;
+      }
+
+      .opening-screen.is-title .opening-button::before {
+        position: absolute;
+        z-index: -1;
+        top: 0;
+        left: 50%;
+        width: 18.75cqw;
+        height: 26.388889cqh;
+        background: linear-gradient(
+          to bottom,
+          rgba(205, 211, 216, 0.58),
+          rgba(164, 171, 177, 0.28) 54%,
+          rgba(112, 119, 125, 0.06)
+        );
+        clip-path: polygon(45% 0, 55% 0, 94% 100%, 6% 100%);
+        content: "";
+        filter: blur(2px);
+        opacity: 0.68;
+        pointer-events: none;
+        transform: translateX(-50%);
+        animation: title-spotlight-flicker 5.4s steps(1, end) infinite;
+      }
+
+      .opening-screen.is-title .opening-button::after {
+        position: absolute;
+        z-index: 1;
+        bottom: 4.513889cqh;
+        left: 50%;
+        width: 10cqw;
+        height: 6.111111cqh;
+        border: 2px solid #747a7f;
+        border-radius: 50%;
+        background: radial-gradient(
+          ellipse at 50% 28%,
+          #dfb0b2 0 8%,
+          #a94b52 28%,
+          #66252c 68%,
+          #2b1115 100%
+        );
+        box-shadow:
+          0 0.763889cqh 0 #303337,
+          0 1.055556cqh 0.15625cqw rgba(0, 0, 0, 0.86),
+          0 0 1.6875cqw rgba(198, 204, 209, 0.34);
+        content: "";
+        pointer-events: none;
+        transform: translateX(-50%);
+        transition:
+          filter 120ms linear,
+          transform 80ms steps(2, end),
+          box-shadow 80ms steps(2, end);
+      }
+
+      .opening-screen.is-title .opening-button:hover::after,
+      .opening-screen.is-title .opening-button:focus-visible::after {
+        filter: brightness(1.12);
+      }
+
+      .opening-screen.is-title .opening-button:focus-visible {
+        outline: 0;
+      }
+
+      .opening-screen.is-title .opening-button:focus-visible::after {
+        box-shadow:
+          0 0.763889cqh 0 #303337,
+          0 1.055556cqh 0.15625cqw rgba(0, 0, 0, 0.86),
+          0 0 0 2px rgba(126, 255, 159, 0.72),
+          0 0 1.9375cqw rgba(198, 204, 209, 0.42);
+      }
+
+      .opening-screen.is-title .opening-button:active::after {
+        box-shadow:
+          0 0.388889cqh 0 #303337,
+          0 0.611111cqh 0.078125cqw rgba(0, 0, 0, 0.86),
+          0 0 1.875cqw rgba(198, 204, 209, 0.42);
+        transform: translateX(-50%) translateY(0.375cqh);
+      }
+
+      .subtitle {
+        display: grid;
+        width: 80cqw;
+        min-height: 10cqh;
+        margin: 0;
+        align-content: center;
+        color: var(--foreground);
+        font-size: 2.03125cqw;
+        letter-spacing: 0.04em;
+        line-height: 1.6;
+        text-shadow: 0 0 0.6875cqw rgba(242, 245, 239, 0.2);
+        text-wrap: balance;
+      }
+
       .celebration.is-dissolving,
       .log-entry.is-dissolving {
         animation: text-dissolve 620ms steps(8, end) forwards;
@@ -200,35 +807,39 @@
       }
 
       .ethics-prompt {
+        position: absolute;
+        inset: 0;
         display: grid;
         width: 100%;
+        height: 100%;
+        align-content: center;
         justify-items: center;
-        row-gap: 0.7rem;
+        row-gap: 1.25cqh;
       }
 
       .ethics-reward {
         margin: 0;
         color: var(--foreground);
-        font-size: clamp(0.88rem, 2.7vw, 1.05rem);
+        font-size: 1.25cqw;
         letter-spacing: 0.04em;
       }
 
       .ethics-actions {
         display: flex;
-        margin-top: 0.45rem;
+        margin-top: 0.625cqh;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 0.65rem 1rem;
+        gap: 0.902778cqh 1.25cqw;
       }
 
       .ethics-button {
-        min-width: 8rem;
-        padding: 0.55rem 0.7rem;
+        min-width: 10cqw;
+        padding: 0.763889cqh 0.875cqw;
         border: 0;
         background: transparent;
         color: var(--foreground);
         cursor: pointer;
-        font-size: clamp(0.76rem, 2.3vw, 0.9rem);
+        font-size: 1.09375cqw;
         letter-spacing: 0.05em;
       }
 
@@ -239,11 +850,11 @@
 
       .ethics-button:focus-visible {
         outline: 1px dotted currentColor;
-        outline-offset: 0.25rem;
+        outline-offset: 0.3125cqw;
       }
 
       .ethics-prompt.is-refused .subtitle {
-        min-height: 3rem;
+        min-height: 4.166667cqh;
       }
 
       .money-display {
@@ -393,8 +1004,8 @@
       }
 
       .button {
-        position: fixed;
-        inset: auto auto max(1rem, env(safe-area-inset-bottom)) 50%;
+        position: absolute;
+        inset: auto auto 6.25cqh 50%;
         z-index: 10;
         width: auto;
         min-width: 10rem;
@@ -461,8 +1072,8 @@
       }
 
       .button-wave {
-        position: fixed;
-        inset: auto auto calc(max(1rem, env(safe-area-inset-bottom)) + 1.45rem) 50%;
+        position: absolute;
+        inset: auto auto calc(6.25cqh + 1.45rem) 50%;
         z-index: 9;
         width: 10rem;
         height: 1rem;
@@ -618,6 +1229,28 @@
         }
       }
 
+      @keyframes scene-dissolve-out {
+        from {
+          opacity: 1;
+          filter: blur(0);
+        }
+        to {
+          opacity: 0;
+          filter: blur(1.25px);
+        }
+      }
+
+      @keyframes scene-dissolve-in {
+        from {
+          opacity: 0;
+          filter: blur(1.25px);
+        }
+        to {
+          opacity: 1;
+          filter: blur(0);
+        }
+      }
+
       @keyframes button-wave {
         0% {
           opacity: 0.56;
@@ -650,6 +1283,63 @@
             drop-shadow(0 -10px 0 rgba(44, 230, 255, 0))
             drop-shadow(0 10px 0 rgba(255, 72, 132, 0));
           transform: translateX(-50%) scaleX(1.9) scaleY(1.7);
+        }
+      }
+
+      @keyframes title-spotlight-flicker {
+        0%,
+        6%,
+        9%,
+        49%,
+        52%,
+        100% {
+          opacity: 0.68;
+        }
+
+        7%,
+        50% {
+          opacity: 0.18;
+        }
+
+        8%,
+        51% {
+          opacity: 0.46;
+        }
+      }
+
+      @keyframes opening-demon-idle-frame-1 {
+        0%, 12.49%, 37.5%, 62.49%, 87.5%, 100% {
+          opacity: 0;
+        }
+        12.5%, 37.49%, 62.5%, 87.49% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes opening-demon-idle-frame-2 {
+        0%, 37.49%, 62.5%, 100% {
+          opacity: 0;
+        }
+        37.5%, 62.49% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes opening-demon-blink-half {
+        0%, 81.24%, 82.81%, 84.37%, 86.26%, 100% {
+          opacity: 0;
+        }
+        81.25%, 82.8%, 84.38%, 86.25% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes opening-demon-blink-closed {
+        0%, 82.8%, 84.37%, 100% {
+          opacity: 0;
+        }
+        82.81%, 84.36% {
+          opacity: 1;
         }
       }
 
@@ -724,23 +1414,212 @@
         }
       }
 
-      @media (max-width: 720px) {
+      @media (orientation: portrait) {
+        .audio-controls {
+          inset:
+            auto max(0.25rem, env(safe-area-inset-right))
+            max(0.125rem, env(safe-area-inset-bottom))
+            max(0.25rem, env(safe-area-inset-left));
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          gap: 0;
+        }
+
+        .sound-toggle,
+        .dialogue-volume {
+          font-size: 0.5rem;
+        }
+
+        .sound-toggle {
+          padding: 0.2rem 0.15rem;
+        }
+
+        .dialogue-volume {
+          grid-template-columns: auto min(12vw, 3.4rem) 2.1rem;
+          gap: 0.2rem;
+          padding: 0.15rem;
+        }
+
+        .dialogue-volume__value {
+          min-width: 2.1rem;
+        }
+
+        .stage {
+          --scene-circle-x: 3.333333cqw;
+          --scene-circle-y: 2.5cqh;
+          --scene-circle-width: 93.333333cqw;
+          --scene-circle-height: 52.5cqh;
+          --scene-speaker-y: 55.625cqh;
+          --scene-speaker-height: 5cqh;
+          --scene-copy-y: 62.5cqh;
+          --scene-copy-height: 8.75cqh;
+          --scene-button-x: 5.555556cqw;
+          --scene-button-y: 86.25cqh;
+          --scene-button-width: 88.888889cqw;
+          --scene-button-height: 8.75cqh;
+          width: min(100vw, 56.25svh);
+          height: min(100svh, 177.777778vw);
+        }
+
         .status-bar {
-          padding-inline: 0.85rem;
+          gap: 3.333333cqw;
+          padding: 2.5cqh 3.333333cqw;
         }
 
         .status {
           max-width: 54%;
         }
 
-        .game {
-          padding-top: 6.3rem;
-          padding-bottom: 6.2rem;
+        .status__label {
+          margin-bottom: 0.46875cqh;
+          font-size: 3.055556cqw;
         }
 
-        .focus-stage {
-          min-height: 6.3rem;
+        .status__value {
+          font-size: 4.166667cqw;
         }
+
+        .status__progress {
+          margin-top: 0.46875cqh;
+          font-size: 2.5cqw;
+        }
+
+        .game__content {
+          padding: 15cqh 4.166667cqw 10cqh;
+        }
+
+        .opening-visual__demon {
+          top: -2cqh;
+          right: -4cqw;
+          width: 85.866667cqw;
+          height: 71.4cqh;
+        }
+
+        .setup-screen {
+          padding: 7.5cqh 5.555556cqw;
+          row-gap: 2.5cqh;
+        }
+
+        .setup-title {
+          max-width: 88.888889cqw;
+          font-size: 5cqw;
+          text-shadow: 0 0 1.666667cqw rgba(242, 245, 239, 0.2);
+        }
+
+        .setup-step,
+        .name-form {
+          row-gap: 1.875cqh;
+        }
+
+        .setup-detail,
+        .name-hint,
+        .name-error {
+          font-size: 3.055556cqw;
+        }
+
+        .profile-options {
+          gap: 3.333333cqw;
+        }
+
+        .profile-option {
+          padding: 0.555556cqw;
+          row-gap: 1.25cqh;
+        }
+
+        .profile-art {
+          width: 33.333333cqw;
+        }
+
+        .profile-option__label {
+          font-size: 3.333333cqw;
+        }
+
+        .player-name-input {
+          width: 80cqw;
+          padding: 1.25cqh 1.111111cqw;
+          font-size: 4.444444cqw;
+        }
+
+        .player-identity {
+          top: 2.5cqh;
+          left: 3.333333cqw;
+          column-gap: 2.222222cqw;
+          font-size: 3.055556cqw;
+        }
+
+        .player-avatar {
+          width: 11.111111cqw;
+        }
+
+        .opening-screen.is-dialogue .opening-title {
+          font-size: 5cqw;
+          text-shadow: 0 0 1.388889cqw rgba(228, 170, 61, 0.24);
+        }
+
+        .opening-screen.is-dialogue .opening-copy {
+          left: 3.333333cqw;
+          width: 93.333333cqw;
+          font-size: 5.833333cqw;
+          line-height: 1.2;
+        }
+
+        .opening-screen.is-title .opening-message {
+          inset: 18.75cqh 0 auto;
+          height: 8.75cqh;
+        }
+
+        .opening-title {
+          font-size: 9.444444cqw;
+        }
+
+        .opening-screen.is-title .opening-button {
+          top: 38.75cqh;
+          left: 25cqw;
+          width: 50cqw;
+          height: 40cqh;
+          padding: 31.25cqh 0 0.9375cqh;
+        }
+
+        .opening-screen.is-title .opening-button::before {
+          width: 55.555556cqw;
+          height: 28.125cqh;
+        }
+
+        .opening-screen.is-title .opening-button::after {
+          bottom: 5cqh;
+          width: 30.555556cqw;
+          height: 7.5cqh;
+        }
+
+        .subtitle {
+          width: 90cqw;
+          min-height: 11.25cqh;
+          font-size: 4.444444cqw;
+          text-shadow: 0 0 1.666667cqw rgba(242, 245, 239, 0.2);
+        }
+
+        .ethics-prompt {
+          row-gap: 1.5625cqh;
+        }
+
+        .ethics-reward {
+          font-size: 3.888889cqw;
+        }
+
+        .ethics-actions {
+          margin-top: 0.9375cqh;
+          gap: 1.25cqh 2.777778cqw;
+        }
+
+        .ethics-button {
+          min-width: 35.555556cqw;
+          padding: 1.25cqh 2.777778cqw;
+          font-size: 3.611111cqw;
+        }
+      }
+
+      @media (max-width: 720px) {
 
         .roulette-log {
           max-height: 36vh;
@@ -775,17 +1654,43 @@
           animation-iteration-count: 1 !important;
           transition-duration: 0.001ms !important;
         }
+
+        .opening-visual__room {
+          transform: none !important;
+          translate: 0 0 !important;
+          transition: none !important;
+        }
+
+        .opening-visual__demon {
+          translate: 0 0 !important;
+          transition: none !important;
+        }
+
+        .opening-demon-frame {
+          animation: none !important;
+          opacity: 0 !important;
+        }
+
+        .opening-demon-frame--idle-0 {
+          opacity: 1 !important;
+        }
+
+        .opening-screen.is-title .opening-button::before {
+          animation: none !important;
+          opacity: 0.68 !important;
+        }
+
+        body.is-scene-exiting .game__content,
+        body.is-scene-exiting .status-bar,
+        body.is-scene-entering .game__content,
+        body.is-scene-entering .status-bar {
+          animation: none !important;
+          filter: none !important;
+          opacity: 1 !important;
+        }
       }
 
       @media (max-height: 700px) {
-        .game {
-          padding-top: 5.8rem;
-        }
-
-        .focus-stage {
-          min-height: 5.8rem;
-        }
-
         .roulette-log {
           max-height: 28vh;
           max-height: 28svh;
@@ -804,25 +1709,211 @@
     </style>
   </head>
   <body>
-    <header id="status-bar" class="status-bar" aria-label="게임 상태" hidden>
-      <div class="status">
-        <span class="status__label">지구 사람</span>
-        <strong id="population" class="status__value">8,199,768,010</strong>
-      </div>
-      <div id="goal-status" class="status">
-        <span id="goal-label" class="status__label">다음 목표</span>
-        <strong id="goal-value" class="status__value">100만원</strong>
-        <span id="goal-progress" class="status__progress" hidden></span>
-      </div>
-    </header>
+    <div class="audio-controls" role="group" aria-label="오디오 설정">
+      <button
+        id="music-toggle"
+        class="sound-toggle"
+        type="button"
+        aria-pressed="true"
+      >[ 음악: 켬 ]</button>
+      <button
+        id="sound-toggle"
+        class="sound-toggle"
+        type="button"
+        aria-pressed="true"
+      >[ 효과음: 켬 ]</button>
+      <label class="dialogue-volume" for="dialogue-volume">
+        <span>[ 비프음 ]</span>
+        <input
+          id="dialogue-volume"
+          class="dialogue-volume__slider"
+          type="range"
+          min="0"
+          max="200"
+          step="10"
+          value="140"
+          aria-label="대사 비프음 볼륨"
+        >
+        <output
+          id="dialogue-volume-value"
+          class="dialogue-volume__value"
+          for="dialogue-volume"
+        >140%</output>
+      </label>
+    </div>
 
-    <main class="game">
+    <div class="viewport">
+      <div class="stage">
+        <header id="status-bar" class="status-bar" aria-label="게임 상태" hidden>
+          <div class="status">
+            <span class="status__label">지구 사람</span>
+            <strong id="population" class="status__value">8,199,768,010</strong>
+          </div>
+          <div id="goal-status" class="status">
+            <span id="goal-label" class="status__label">다음 목표</span>
+            <strong id="goal-value" class="status__value">100만원</strong>
+            <span id="goal-progress" class="status__progress" hidden></span>
+          </div>
+        </header>
+
+        <main class="game">
       <div class="game__content">
         <div id="focus-stage" class="focus-stage">
+          <section
+            id="setup-screen"
+            class="setup-screen"
+            aria-labelledby="setup-title"
+            hidden
+          >
+            <h1 id="setup-title" class="setup-title">어떤 언어로 플레이하시겠습니까?</h1>
+
+            <div id="setup-language" class="setup-step">
+              <p class="setup-detail">현재는 한국어만 지원합니다.</p>
+              <button id="language-korean" class="ethics-button" type="button">[ 한국어 ]</button>
+            </div>
+
+            <div id="setup-profile" class="setup-step" hidden>
+              <div class="profile-options" aria-label="프로필 선택">
+                <button
+                  id="profile-male"
+                  class="profile-option"
+                  data-profile="male"
+                  type="button"
+                  aria-label="남성 프로필 선택"
+                >
+                  <span class="profile-art" aria-hidden="true"></span>
+                  <span class="profile-option__label">[ 남성 ]</span>
+                </button>
+                <button
+                  id="profile-female"
+                  class="profile-option"
+                  data-profile="female"
+                  type="button"
+                  aria-label="여성 프로필 선택"
+                >
+                  <span class="profile-art" aria-hidden="true"></span>
+                  <span class="profile-option__label">[ 여성 ]</span>
+                </button>
+              </div>
+            </div>
+
+            <form id="setup-name-form" class="name-form" hidden novalidate>
+              <label class="sr-only" for="player-name">당신의 이름은?</label>
+              <input
+                id="player-name"
+                class="player-name-input"
+                name="player-name"
+                type="text"
+                maxlength="12"
+                autocomplete="off"
+                spellcheck="false"
+                aria-describedby="name-hint name-error"
+              >
+              <p id="name-hint" class="name-hint">1~12자 · 이 탭에서만 기억</p>
+              <p id="name-error" class="name-error" role="alert" hidden>이름을 입력해 주세요.</p>
+              <button id="name-confirm" class="ethics-button" type="submit">[ 확인 ]</button>
+            </form>
+          </section>
+
+          <section
+            id="opening-screen"
+            class="opening-screen is-title"
+            data-opening-visual="none"
+            aria-labelledby="opening-title"
+          >
+            <div id="player-identity" class="player-identity" hidden>
+              <span id="player-avatar" class="player-avatar" aria-hidden="true"></span>
+              <strong id="opening-player-name"></strong>
+            </div>
+            <div class="opening-visual" aria-hidden="true">
+              <img
+                class="opening-visual__room"
+                src="./assets/opening-room.webp"
+                width="1600"
+                height="900"
+                alt=""
+                loading="eager"
+                decoding="async"
+                fetchpriority="low"
+                draggable="false"
+              >
+              <div class="opening-visual__demon">
+                <img
+                  class="opening-demon-frame opening-demon-frame--idle-0"
+                  src="./assets/opening-demon-idle-0.webp"
+                  width="720"
+                  height="1060"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="low"
+                  draggable="false"
+                >
+                <img
+                  class="opening-demon-frame opening-demon-frame--idle-1"
+                  src="./assets/opening-demon-idle-1.webp"
+                  width="720"
+                  height="1060"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  draggable="false"
+                >
+                <img
+                  class="opening-demon-frame opening-demon-frame--idle-2"
+                  src="./assets/opening-demon-idle-2.webp"
+                  width="720"
+                  height="1060"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  draggable="false"
+                >
+                <img
+                  class="opening-demon-frame opening-demon-frame--blink-half"
+                  src="./assets/opening-demon-blink-half.webp"
+                  width="720"
+                  height="1060"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  draggable="false"
+                >
+                <img
+                  class="opening-demon-frame opening-demon-frame--blink-closed"
+                  src="./assets/opening-demon-blink-closed.webp"
+                  width="720"
+                  height="1060"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  draggable="false"
+                >
+              </div>
+            </div>
+            <div id="opening-message" class="opening-message">
+              <h1 id="opening-title" class="opening-title">100만원 버튼</h1>
+              <p id="opening-copy" class="opening-copy" hidden></p>
+            </div>
+            <p
+              id="opening-announcement"
+              class="sr-only"
+              aria-live="polite"
+              aria-atomic="true"
+            ></p>
+            <button
+              id="opening-advance"
+              class="ethics-button opening-button"
+              type="button"
+              aria-label="100만원 버튼을 누른다."
+            >[ 누르기 ]</button>
+          </section>
+
           <section
             id="ethics-prompt"
             class="ethics-prompt"
             aria-labelledby="ethics-question"
+            hidden
           >
             <h1
               id="ethics-question"
@@ -890,7 +1981,9 @@
           hidden
         ></div>
       </div>
-    </main>
+        </main>
+      </div>
+    </div>
 
     <template id="roulette-entry-template">
       <li class="log-entry">
@@ -921,6 +2014,6 @@
     </template>
 
     <noscript><p class="noscript">자바스크립트 필요.</p></noscript>
-    <script type="module" src="./game.js"></script>
+    <script type="module" src="./game.js?v=20260714-opening19-visual2-scene3-line2-copy2-titlelight2-identity1-dialoguekey1-voice2-sfx6-bgm3-blipvolume1-parallax3-textadvance1-copyfont1"></script>
   </body>
 </html>

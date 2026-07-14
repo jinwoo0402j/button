@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>악마 프레임 에디터</title>
+    <style>
+      @font-face {
+        font-family: "Galmuri";
+        src: url("./assets/fonts/Galmuri11-Bold.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+        --background: #070907;
+        --panel: #0d110e;
+        --panel-strong: #121813;
+        --line: #304336;
+        --line-strong: #6e9b78;
+        --foreground: #f2f5ef;
+        --muted: #93a096;
+        --green: #54df79;
+        --amber: #e4aa3d;
+        --red: #ff6859;
+        --cyan: #5fd7e8;
+        --checker-a: #242925;
+        --checker-b: #171b18;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        background:
+          linear-gradient(rgba(84, 223, 121, 0.025) 1px, transparent 1px) 0 0 / 100% 4px,
+          var(--background);
+        color: var(--foreground);
+        font-family: "Galmuri", ui-monospace, monospace;
+        font-size: 14px;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button,
+      .file-button {
+        min-height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 2px;
+        background: #101511;
+        color: var(--foreground);
+        cursor: pointer;
+        padding: 0.48rem 0.7rem;
+      }
+
+      button:hover,
+      .file-button:hover {
+        border-color: var(--green);
+        color: var(--green);
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      .file-button:focus-visible {
+        outline: 2px solid var(--cyan);
+        outline-offset: 2px;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.35;
+      }
+
+      button[aria-pressed="true"] {
+        border-color: var(--green);
+        background: rgba(84, 223, 121, 0.13);
+        color: var(--green);
+      }
+
+      input[type="number"],
+      input[type="text"] {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: #060806;
+        color: var(--foreground);
+        padding: 0.38rem 0.48rem;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--green);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .editor-shell {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-height: 100vh;
+      }
+
+      .editor-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border-bottom: 1px solid var(--line);
+        background: rgba(7, 9, 7, 0.96);
+        padding: 0.8rem 1rem;
+      }
+
+      .editor-title {
+        margin: 0;
+        color: var(--green);
+        font-size: clamp(1rem, 2vw, 1.32rem);
+        letter-spacing: 0.04em;
+      }
+
+      .editor-subtitle {
+        margin: 0.2rem 0 0;
+        color: var(--muted);
+        font-size: 0.76rem;
+      }
+
+      .editor-header__actions,
+      .editor-toolbar,
+      .editor-transport,
+      .editor-compare,
+      .editor-row,
+      .editor-nudge {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+
+      .editor-header__actions button {
+        min-height: 32px;
+        font-size: 0.78rem;
+      }
+
+      .editor-workspace {
+        display: grid;
+        grid-template-columns: minmax(440px, 1fr) 300px;
+        min-height: 0;
+      }
+
+      .editor-preview-panel {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-width: 0;
+        border-right: 1px solid var(--line);
+        padding: 0.8rem;
+      }
+
+      .editor-toolbar {
+        justify-content: space-between;
+        min-height: 42px;
+        margin-bottom: 0.7rem;
+      }
+
+      .editor-transport button {
+        min-width: 42px;
+      }
+
+      #play-toggle {
+        min-width: 84px;
+        border-color: var(--green);
+        color: var(--green);
+      }
+
+      .editor-stage-wrap {
+        display: grid;
+        min-height: 360px;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: #030403;
+      }
+
+      .editor-stage {
+        position: relative;
+        display: grid;
+        max-width: 100%;
+        max-height: calc(100vh - 330px);
+        aspect-ratio: 720 / 1060;
+        place-items: center;
+        overflow: hidden;
+        background-color: var(--checker-a);
+        background-image:
+          linear-gradient(45deg, var(--checker-b) 25%, transparent 25%),
+          linear-gradient(-45deg, var(--checker-b) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, var(--checker-b) 75%),
+          linear-gradient(-45deg, transparent 75%, var(--checker-b) 75%);
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+        background-size: 16px 16px;
+        box-shadow: 0 0 0 1px #000, 0 12px 32px rgba(0, 0, 0, 0.45);
+      }
+
+      #preview-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        image-rendering: auto;
+      }
+
+      .editor-stage-badge {
+        position: absolute;
+        top: 0.45rem;
+        left: 0.45rem;
+        max-width: calc(100% - 0.9rem);
+        overflow: hidden;
+        border: 1px solid rgba(84, 223, 121, 0.65);
+        background: rgba(0, 0, 0, 0.76);
+        color: var(--green);
+        font-size: 0.68rem;
+        padding: 0.25rem 0.36rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      .editor-scrub {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.7rem;
+        margin-top: 0.7rem;
+      }
+
+      #time-readout {
+        min-width: 112px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      .editor-inspector {
+        min-width: 0;
+        overflow-y: auto;
+        background: var(--panel);
+        padding: 0.85rem;
+      }
+
+      .editor-section {
+        border-bottom: 1px solid var(--line);
+        padding: 0 0 0.95rem;
+        margin: 0 0 0.95rem;
+      }
+
+      .editor-section:last-child {
+        border-bottom: 0;
+      }
+
+      .editor-section h2 {
+        margin: 0 0 0.7rem;
+        color: var(--green);
+        font-size: 0.86rem;
+      }
+
+      .editor-field {
+        display: grid;
+        gap: 0.3rem;
+        margin-top: 0.65rem;
+      }
+
+      .editor-field label,
+      .editor-field__label {
+        color: var(--muted);
+        font-size: 0.74rem;
+      }
+
+      .editor-frame-name {
+        min-height: 2.4rem;
+        margin: 0;
+        overflow-wrap: anywhere;
+        color: var(--foreground);
+        line-height: 1.5;
+      }
+
+      .editor-reference {
+        margin: 0.35rem 0 0;
+        color: var(--cyan);
+        font-size: 0.7rem;
+        overflow-wrap: anywhere;
+      }
+
+      .editor-warning {
+        min-height: 2.6rem;
+        margin: 0.65rem 0 0;
+        color: var(--amber);
+        font-size: 0.7rem;
+        line-height: 1.45;
+      }
+
+      .editor-nudge {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 168px;
+        margin: 0.6rem auto 0;
+      }
+
+      .editor-nudge button {
+        min-width: 0;
+        padding-inline: 0.35rem;
+      }
+
+      .editor-nudge button:nth-child(1) {
+        grid-column: 2;
+      }
+
+      .editor-nudge button:nth-child(2) {
+        grid-column: 1;
+      }
+
+      .editor-nudge button:nth-child(3) {
+        grid-column: 2;
+      }
+
+      .editor-nudge button:nth-child(4) {
+        grid-column: 3;
+      }
+
+      .editor-nudge button:nth-child(5) {
+        grid-column: 2;
+      }
+
+      .editor-toggle-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-height: 34px;
+        color: var(--foreground);
+        cursor: pointer;
+      }
+
+      .editor-timeline-panel {
+        min-width: 0;
+        border-top: 1px solid var(--line);
+        background: var(--panel-strong);
+        padding: 0.75rem 0.9rem 0.85rem;
+      }
+
+      .editor-timeline-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.7rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .editor-timeline-header h2 {
+        margin: 0;
+        color: var(--green);
+        font-size: 0.86rem;
+      }
+
+      #timeline-summary {
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .editor-timeline {
+        display: flex;
+        gap: 0.45rem;
+        min-height: 116px;
+        overflow-x: auto;
+        padding: 0.2rem 0.1rem 0.5rem;
+        scrollbar-color: var(--line-strong) #080a08;
+      }
+
+      .editor-cue {
+        position: relative;
+        display: grid;
+        flex: 0 0 92px;
+        grid-template-rows: 66px auto auto;
+        min-height: 108px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: #090c09;
+        color: var(--muted);
+        padding: 0;
+        text-align: left;
+      }
+
+      .editor-cue:hover {
+        border-color: var(--line-strong);
+        color: var(--foreground);
+      }
+
+      .editor-cue.is-selected {
+        border-color: var(--green);
+        box-shadow: inset 0 0 0 1px var(--green);
+        color: var(--green);
+      }
+
+      .editor-cue.is-reference::after {
+        position: absolute;
+        top: 0.25rem;
+        right: 0.25rem;
+        border: 1px solid var(--cyan);
+        background: rgba(0, 0, 0, 0.82);
+        color: var(--cyan);
+        content: "REF";
+        font-size: 0.55rem;
+        padding: 0.12rem 0.18rem;
+      }
+
+      .editor-cue img {
+        width: 100%;
+        height: 66px;
+        background: #171a17;
+        object-fit: contain;
+        object-position: center 20%;
+        pointer-events: none;
+      }
+
+      .editor-cue__name,
+      .editor-cue__duration {
+        display: block;
+        overflow: hidden;
+        padding: 0.22rem 0.35rem 0;
+        font-size: 0.63rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      .editor-cue__duration {
+        padding-block: 0.08rem 0.3rem;
+        color: var(--amber);
+      }
+
+      .editor-status {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 10;
+        max-width: min(520px, calc(100vw - 2rem));
+        border: 1px solid var(--line-strong);
+        background: rgba(4, 6, 4, 0.96);
+        color: var(--foreground);
+        padding: 0.65rem 0.8rem;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+        font-size: 0.72rem;
+        line-height: 1.45;
+      }
+
+      .editor-status[data-tone="error"] {
+        border-color: var(--red);
+        color: var(--red);
+      }
+
+      .editor-status[data-tone="success"] {
+        border-color: var(--green);
+        color: var(--green);
+      }
+
+      @media (max-width: 900px) {
+        .editor-shell {
+          display: block;
+        }
+
+        .editor-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .editor-workspace {
+          display: block;
+        }
+
+        .editor-preview-panel {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .editor-stage {
+          max-height: 64vh;
+        }
+
+        .editor-inspector {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem;
+        }
+
+        .editor-section {
+          border: 1px solid var(--line);
+          margin: 0;
+          padding: 0.8rem;
+        }
+      }
+
+      @media (max-width: 560px) {
+        body {
+          font-size: 13px;
+        }
+
+        .editor-header,
+        .editor-preview-panel,
+        .editor-inspector,
+        .editor-timeline-panel {
+          padding-inline: 0.6rem;
+        }
+
+        .editor-inspector {
+          display: block;
+        }
+
+        .editor-section {
+          margin-bottom: 0.7rem;
+        }
+
+        .editor-stage-wrap {
+          min-height: 300px;
+        }
+
+        .editor-stage {
+          max-height: 58vh;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="editor-shell">
+      <header class="editor-header">
+        <div>
+          <h1 class="editor-title">악마 프레임 에디터</h1>
+          <p class="editor-subtitle">한 시점에 한 장 · 전체 래스터 프레임 교체 방식</p>
+        </div>
+        <div class="editor-header__actions" aria-label="프로젝트 작업">
+          <button id="reset-project" type="button">기본 프레임</button>
+          <button id="import-project" type="button">JSON 불러오기</button>
+          <button id="export-project" type="button">JSON 내보내기</button>
+          <button id="export-frame" type="button">현재 WebP</button>
+          <a class="file-button" href="./index.html">게임 보기</a>
+        </div>
+      </header>
+
+      <main class="editor-workspace">
+        <section class="editor-preview-panel" aria-labelledby="preview-title">
+          <h2 id="preview-title" class="sr-only">애니메이션 미리보기</h2>
+          <div class="editor-toolbar">
+            <div class="editor-transport" aria-label="재생 제어">
+              <button id="previous-frame" type="button" aria-label="이전 프레임">|&lt;</button>
+              <button id="play-toggle" type="button" aria-pressed="false">재생</button>
+              <button id="next-frame" type="button" aria-label="다음 프레임">&gt;|</button>
+              <label class="editor-toggle-label" for="loop-toggle">
+                <input id="loop-toggle" type="checkbox" checked>
+                반복
+              </label>
+            </div>
+            <div class="editor-compare" aria-label="비교 표시">
+              <button id="onion-toggle" type="button" aria-pressed="false">오니언</button>
+              <button id="difference-toggle" type="button" aria-pressed="false">차이</button>
+              <button id="ab-toggle" type="button" aria-pressed="false">A/B 깜빡임</button>
+              <button id="guides-toggle" type="button" aria-pressed="true">가이드</button>
+            </div>
+          </div>
+
+          <div class="editor-stage-wrap">
+            <div id="frame-stage" class="editor-stage">
+              <canvas id="preview-canvas" width="720" height="1060"></canvas>
+              <span id="stage-badge" class="editor-stage-badge">불러오는 중</span>
+            </div>
+          </div>
+
+          <div class="editor-scrub">
+            <label class="sr-only" for="timeline-scrubber">재생 위치</label>
+            <input id="timeline-scrubber" type="range" min="0" max="1" value="0" step="1">
+            <output id="time-readout" for="timeline-scrubber">0 / 0 ms</output>
+          </div>
+        </section>
+
+        <aside class="editor-inspector" aria-label="프레임 속성">
+          <section class="editor-section">
+            <h2>선택 프레임</h2>
+            <p id="selected-frame-name" class="editor-frame-name">-</p>
+            <p id="reference-frame-name" class="editor-reference">기준: -</p>
+            <div class="editor-row">
+              <button id="add-frames" type="button">추가</button>
+              <button id="replace-frame" type="button">이미지 교체</button>
+              <button id="duplicate-frame" type="button">구간 복제</button>
+              <button id="delete-frame" type="button">삭제</button>
+            </div>
+            <div class="editor-row" style="margin-top: 0.45rem">
+              <button id="move-frame-left" type="button" aria-label="선택 프레임을 왼쪽으로 이동">왼쪽</button>
+              <button id="move-frame-right" type="button" aria-label="선택 프레임을 오른쪽으로 이동">오른쪽</button>
+              <button id="set-reference" type="button">기준으로 설정</button>
+            </div>
+            <p id="frame-warning" class="editor-warning" role="status"></p>
+          </section>
+
+          <section class="editor-section">
+            <h2>타이밍</h2>
+            <div class="editor-field">
+              <label for="frame-duration">이 구간 체류시간 (16~10000 ms)</label>
+              <input id="frame-duration" type="number" min="16" max="10000" step="1" value="120">
+            </div>
+          </section>
+
+          <section class="editor-section">
+            <h2>픽셀 정렬</h2>
+            <div class="editor-row">
+              <div class="editor-field" style="flex: 1">
+                <label for="frame-offset-x">X (px)</label>
+                <input id="frame-offset-x" type="number" step="1" value="0">
+              </div>
+              <div class="editor-field" style="flex: 1">
+                <label for="frame-offset-y">Y (px)</label>
+                <input id="frame-offset-y" type="number" step="1" value="0">
+              </div>
+            </div>
+            <div class="editor-nudge" aria-label="프레임 위치 미세 조정">
+              <button type="button" data-nudge-x="0" data-nudge-y="-1" aria-label="위로 1픽셀">위</button>
+              <button type="button" data-nudge-x="-1" data-nudge-y="0" aria-label="왼쪽으로 1픽셀">왼쪽</button>
+              <button id="reset-offset" type="button" aria-label="위치 초기화">0</button>
+              <button type="button" data-nudge-x="1" data-nudge-y="0" aria-label="오른쪽으로 1픽셀">오른쪽</button>
+              <button type="button" data-nudge-x="0" data-nudge-y="1" aria-label="아래로 1픽셀">아래</button>
+            </div>
+          </section>
+
+          <section class="editor-section">
+            <h2>비교 강도</h2>
+            <div class="editor-field">
+              <label for="onion-opacity">기준 프레임 투명도</label>
+              <input id="onion-opacity" type="range" min="5" max="90" value="35" step="1">
+            </div>
+            <p class="editor-warning">교체 이미지는 현재 세션에서 바로 보입니다. JSON에는 <code>./assets/파일명</code>으로 기록되므로 실제 파일도 그 경로에 두세요.</p>
+          </section>
+        </aside>
+      </main>
+
+      <section class="editor-timeline-panel" aria-labelledby="timeline-title">
+        <div class="editor-timeline-header">
+          <h2 id="timeline-title">단일 프레임 타임라인</h2>
+          <span id="timeline-summary">0 프레임 · 0 ms</span>
+        </div>
+        <div
+          id="timeline"
+          class="editor-timeline"
+          role="listbox"
+          aria-label="애니메이션 프레임 순서"
+          aria-orientation="horizontal"
+        ></div>
+      </section>
+    </div>
+
+    <input id="frame-input" type="file" accept=".png,.webp,image/png,image/webp" multiple hidden>
+    <input id="replace-input" type="file" accept=".png,.webp,image/png,image/webp" hidden>
+    <input id="project-input" type="file" accept=".json,application/json" hidden>
+    <p id="editor-status" class="editor-status" role="status" aria-live="polite" hidden></p>
+
+    <script src="./animation-editor-core.js"></script>
+    <script src="./animation-editor.js"></script>
+  </body>
+</html>
